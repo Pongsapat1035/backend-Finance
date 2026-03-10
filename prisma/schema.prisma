@@ -33,11 +33,12 @@ model Transaction {
 }
 
 model Category {
-  id           Int           @id @default(autoincrement())
+  id           Int             @id @default(autoincrement())
   title        String
+  type         TransactionType
   transactions Transaction[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 }
 
 enum TransactionType {
