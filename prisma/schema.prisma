@@ -15,12 +15,23 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  email       String   @unique
+  name        String?
+  password    String
+  emailVerity Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  otps        Otp[]
+}
+
+model Otp {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+  expireDate DateTime
+  otp        String
+  referral   String
 }
 
 model Transaction {
