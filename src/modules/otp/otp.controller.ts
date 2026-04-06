@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { OtpService } from './otp.service';
 import { ApiProperty } from '@nestjs/swagger';
+import { OtpVerify } from './otp.dto';
 
 @Controller('otp')
 export class OtpController {
@@ -8,7 +9,10 @@ export class OtpController {
 
     @ApiProperty()
     @Get("send-otp")
-    sendOtp() {
-        return this.otpService.sendOtp()
+    sendOtp(@Body() body) {
+        // return this.otpService.sendOtp(body.email)
+        return "Retry"
     }
+
+ 
 }

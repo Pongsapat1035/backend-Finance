@@ -101,13 +101,13 @@ export function buildOtpEmailHtml(data: OtpEmailData): string {
               <circle cx="8" cy="8" r="6.5" stroke="#444" stroke-width="1.4"/>
               <path d="M8 5V8.5L10 10" stroke="#444" stroke-width="1.4" stroke-linecap="round"/>
             </svg>
-            Expires in 10 minutes
+            Expires in 5 minutes
           </div>
         </div>
 
         <ul class="info-list">
           <li><span class="dot"></span><span>Valid for <strong>single use only</strong> · expires in <strong>10 minutes</strong></span></li>
-          <li><span class="dot"></span><span>IP address <strong>${data.ip_address}</strong> · <strong>${data.timestamp}</strong></span></li>
+          <li><span class="dot"></span><span>Date <strong>${data.timestamp}</strong></span></li>
           <li><span class="dot"></span><span>Location <strong>${data.location}</strong> · Device <strong>${data.device}</strong></span></li>
         </ul>
 

@@ -19,19 +19,20 @@ model User {
   email       String   @unique
   name        String?
   password    String
-  emailVerity Boolean  @default(false)
+  emailVerify Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   otps        Otp[]
 }
 
 model Otp {
-  id     Int  @id @default(autoincrement())
-  userId Int
-  user   User @relation(fields: [userId], references: [id])
-  expireDate DateTime
-  otp        String
-  referral   String
+  id       Int      @id @default(autoincrement())
+  userId   Int
+  user     User     @relation(fields: [userId], references: [id])
+  expireAt DateTime
+  otp      String
+  referral String
+  purpose  OtpType
 }
 
 model Transaction {
@@ -56,4 +57,8 @@ model Category {
 enum TransactionType {
   EXPEND @map("expend")
   INCOME @map("income")
+}
+
+enum OtpType {
+  EMAIL @map("verify_email")
 }
