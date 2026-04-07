@@ -1,13 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
 import { CreateUserDto, LoginDto } from './dto/auth.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { OtpVerify } from '../otp/otp.dto';
+import { LocalAuthGuard } from './guard/local-auth.guard';
+import { Request } from 'express';
+import { UserModel } from 'generated/prisma/models/User';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(
+    private readonly authService: AuthService) { }
 
   @ApiProperty()
   @Post("signup")
@@ -16,10 +20,10 @@ export class AuthController {
     return this.authService.create(createAuthDto);
   }
 
+  @UseGuards(LocalAuthGuard)
   @Post("signin")
-  signIn(@Body() createAuthDto: LoginDto) {
-    return "login calling"
-    // return this.authService.create(createAuthDto);
+  signIn(@Req() req: Request) {
+    return this.authService.login(req.user as UserModel);
   }
 
   @ApiProperty()

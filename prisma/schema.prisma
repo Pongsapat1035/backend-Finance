@@ -15,24 +15,27 @@ datasource db {
 }
 
 model User {
-  id          Int      @id @default(autoincrement())
-  email       String   @unique
-  name        String?
-  password    String
-  emailVerify Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  otps        Otp[]
+  id        Int        @id @default(autoincrement())
+  email     String     @unique
+  name      String?
+  password  String
+  status    UserStatus
+  bannedAt  DateTime?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  otps      Otp[]
 }
 
 model Otp {
-  id       Int      @id @default(autoincrement())
-  userId   Int
-  user     User     @relation(fields: [userId], references: [id])
-  expireAt DateTime
-  otp      String
-  referral String
-  purpose  OtpType
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id])
+  expireAt     DateTime
+  otp          String
+  referral     String
+  attempts     Int      @default(0)
+  resend_count Int      @default(0)
+  purpose      OtpType
 }
 
 model Transaction {
@@ -61,4 +64,10 @@ enum TransactionType {
 
 enum OtpType {
   EMAIL @map("verify_email")
+}
+
+enum UserStatus {
+  UNVERIFIED @map("unverified")
+  VERIFIED   @map("verified")
+  BANNED     @map("banned")
 }
