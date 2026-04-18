@@ -15,15 +15,16 @@ datasource db {
 }
 
 model User {
-  id        Int        @id @default(autoincrement())
-  email     String     @unique
-  name      String?
-  password  String
-  status    UserStatus
-  bannedAt  DateTime?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  otps      Otp[]
+  id         Int        @id @default(autoincrement())
+  email      String     @unique
+  name       String?
+  password   String
+  status     UserStatus
+  bannedAt   DateTime?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  otps       Otp[]
+  categories Category[]
 }
 
 model Otp {
@@ -52,9 +53,11 @@ model Category {
   id           Int             @id @default(autoincrement())
   title        String
   type         TransactionType
+  users        User            @relation(fields: [userId], references: [id])
   transactions Transaction[]
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
+  userId       Int
 }
 
 enum TransactionType {
