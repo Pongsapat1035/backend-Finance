@@ -5,9 +5,10 @@ import { AuthModule } from './modules/auth/auth.module';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { OtpModule } from './modules/otp/otp.module';
+import { CategoryModule } from './category/category.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), AuthModule, OtpModule, PrismaModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), AuthModule, OtpModule, PrismaModule, CategoryModule],
   controllers: [AppController],
   providers: [AppService],
 })
