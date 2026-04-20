@@ -12,4 +12,8 @@ export class CategoryDto {
     @IsEnum(TransactionType)
     @IsNotEmpty()
     type: TransactionType
+
+    @IsString()
+    @IsNotEmpty()
+    color: string
 }

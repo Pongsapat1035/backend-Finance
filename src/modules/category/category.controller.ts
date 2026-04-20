@@ -8,17 +8,16 @@ import { CurrentUser } from 'src/modules/auth/decorator/user.decorator';
 
 @ApiTags('Category')
 @ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('category')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) { }
 
-  @UseGuards(JwtAuthGuard)
   @Post()
   create(@Body() body: CategoryDto, @CurrentUser('userId') userId: number) {
     return this.categoryService.create(body, userId);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get()
   findAll(@Param() params: PaginationDto, @CurrentUser('userId') userId: number) {
     return this.categoryService.findAll(params, userId);

@@ -40,19 +40,21 @@ model Otp {
 }
 
 model Transaction {
-  id         Int             @id @default(autoincrement())
-  title      String
-  type       TransactionType
-  amount     Int
-  categories Category[]
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
+  id          Int             @id @default(autoincrement())
+  type        TransactionType
+  amount      Int
+  description String
+  date        DateTime
+  categories  Category[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 }
 
 model Category {
   id           Int             @id @default(autoincrement())
   title        String
   type         TransactionType
+  color        String          @default("#FFFFFF")
   users        User            @relation(fields: [userId], references: [id])
   transactions Transaction[]
   createdAt    DateTime        @default(now())
@@ -61,8 +63,9 @@ model Category {
 }
 
 enum TransactionType {
-  EXPEND @map("expend")
-  INCOME @map("income")
+  EXPEND     @map("expend")
+  INCOME     @map("income")
+  INVESTMENT @map("investment")
 }
 
 enum OtpType {
