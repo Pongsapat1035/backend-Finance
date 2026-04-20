@@ -9,5 +9,4 @@ test
 docker-compose.yml
 Dockerfile
 README.md
-nest-cli.json
 eslint.config.mjs
