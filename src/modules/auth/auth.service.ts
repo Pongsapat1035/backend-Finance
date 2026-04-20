@@ -8,6 +8,7 @@ import { OtpVerify } from '../otp/otp.dto';
 import * as dayjs from 'dayjs';
 import { OtpType, UserStatus } from 'generated/prisma/enums';
 import { UserModel } from 'generated/prisma/models/User';
+import { getDefaultCategories } from '../../utils/default-categories.util';
 
 const saltRounds = 10
 
@@ -75,6 +76,12 @@ export class AuthService {
       const user = await tx.user.update({
         where: { id: userId },
         data: { status: UserStatus.VERIFIED }
+      })
+
+      // Seed default categories
+      const defaultCategories = getDefaultCategories(user.id);
+      await tx.category.createMany({
+        data: defaultCategories
       })
 
       // Delete used OTP

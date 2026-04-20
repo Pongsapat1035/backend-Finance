@@ -25,3 +25,16 @@ services:
       - "8080:8080"
     volumes:
       - ./servers.json:/pgadmin4/servers.json
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: finance-app-backend:latest
+    restart: always
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env
+    depends_on:
+      - postgres
