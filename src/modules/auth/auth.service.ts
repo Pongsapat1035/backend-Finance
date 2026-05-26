@@ -5,7 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt'
 import { OtpService } from '../otp/otp.service';
 import { OtpVerify } from '../otp/otp.dto';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 import { OtpType, UserStatus } from 'generated/prisma/enums';
 import { UserModel } from 'generated/prisma/models/User';
 import { getDefaultCategories } from '../../utils/default-categories.util';
@@ -36,15 +36,15 @@ export class AuthService {
         status: UserStatus.UNVERIFIED
       },
     });
-    const otp = await this.otpService.createOtp({ userId: user.id, email: user.email })
-    console.log(otp)
-
+    const otpResponse = await this.otpService.createOtp({ userId: user.id, email: user.email })
+    const { referral } = otpResponse.otp
     return {
       message: "Registration successful. Please check your email for a verification code.",
       data: {
         userId: user.id,
         email: user.email,
-        expireIn: 600
+        expireIn: 600,
+        referral
       }
     };
   }
