@@ -1,19 +1,18 @@
-import { Injectable, NotFoundException, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, NotFoundException, HttpException, HttpStatus, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from './email.service';
 import { generateOtp, generateReferral } from 'src/utils/generateOtp';
-import * as dayjs from 'dayjs';
-import { OtpType } from 'generated/prisma/enums';
-import { CreateOtpDto, ResentOtpDto } from './otp.dto';
-import { UserStatus } from 'generated/prisma/enums';
+import dayjs from 'dayjs';
+import { OtpType, UserStatus } from 'generated/prisma/enums';
+import { CreateOtpDto, RequestOtpByEmail, ResentOtpDto } from './otp.dto';
 
 @Injectable()
 export class OtpService {
     constructor(private prisma: PrismaService, private emailService: EmailService) { }
 
     async createOtp(dto: CreateOtpDto) {
-        const { userId, email, referral } = dto
-        return this.generateOtp({ userId, email, referral, resend_count: 0 })
+        const { userId, email, userName, referral } = dto
+        return this.generateOtp({ userId, email, userName, referral, resend_count: 0 })
     }
 
     async resentOtp(dto: ResentOtpDto) {
@@ -40,9 +39,49 @@ export class OtpService {
             resend_count: existingOtp.resend_count + 1
         })
     }
+    async requestOtp(dto: RequestOtpByEmail) {
+        const { email } = dto
+        const userData = await this.prisma.user.findFirst({ where: { email } })
+        if (!userData) throw new NotFoundException("User not found")
 
-    private async generateOtp(dto: { userId: number, email: string, referral?: string, resend_count: number }) {
-        const { userId, email, referral, resend_count } = dto
+        if (userData.status === UserStatus.VERIFIED) {
+            throw new BadRequestException("User is already verified")
+        }
+
+        if (userData.status === UserStatus.BANNED) {
+            throw new BadRequestException("User got banned")
+        }
+
+        await this.prisma.otp.deleteMany({
+            where: {
+                userId: userData.id,
+                purpose: OtpType.EMAIL
+            }
+        })
+
+        const otpResponse = await this.generateOtp({
+            userId: userData.id,
+            email: userData.email,
+            userName: userData.name || undefined,
+            resend_count: 0
+        })
+
+        const { referral } = otpResponse.otp
+
+        return {
+            message: "Otp sent successfully",
+            data: {
+                userId: userData.id,
+                email: userData.email,
+                expireIn: 300,
+                referral
+            }
+        }
+
+    }
+
+    private async generateOtp(dto: { userId: number, email: string, userName?: string, referral?: string, resend_count: number }) {
+        const { userId, email, userName, referral, resend_count } = dto
         const code = generateOtp()
         const expireAt = dayjs().add(5, 'minute').toDate()
 
@@ -58,12 +97,12 @@ export class OtpService {
             }
         })
 
-        // this.sendOtp(email, code)
+        await this.sendOtp(email, code, userName)
         console.log(`Send otp : ${code} at email : ${email}`)
         return { message: "create otp success", otp }
     }
 
-    sendOtp(email: string, otp: string) {
-        return this.emailService.sendOtpEmail(email, otp)
+    sendOtp(email: string, otp: string, userName?: string) {
+        return this.emailService.sendOtpEmail(email, otp, userName)
     }
 }

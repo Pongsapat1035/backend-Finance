@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 import { OtpService } from './otp.service';
 import { ApiProperty } from '@nestjs/swagger';
-import { ResentOtpDto } from './otp.dto';
+import { RequestOtpByEmail, ResentOtpDto } from './otp.dto';
 
 @Controller('otp')
 export class OtpController {
@@ -13,5 +13,8 @@ export class OtpController {
         return this.otpService.resentOtp(body)
     }
 
-
+    @Post("send")
+    requestOtp(@Body() body: RequestOtpByEmail) {
+        return this.otpService.requestOtp(body)
+    }
 }
