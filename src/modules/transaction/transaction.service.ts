@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { CreateTransactionDto, UpdateTransactionDto } from './dto/transaction.dto';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()

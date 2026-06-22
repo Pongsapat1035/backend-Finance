@@ -2,13 +2,13 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import * as dayjs from 'dayjs';
-import * as utc from 'dayjs/plugin/utc';
-import * as buddhist from 'dayjs/plugin/buddhistEra';
-import * as timezone from 'dayjs/plugin/timezone';
-import * as isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
-import * as isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
-import * as duration from 'dayjs/plugin/duration';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import buddhist from 'dayjs/plugin/buddhistEra';
+import timezone from 'dayjs/plugin/timezone';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import duration from 'dayjs/plugin/duration';
 
 dayjs.extend(buddhist);
 dayjs.extend(utc);
@@ -37,6 +37,10 @@ async function bootstrap() {
     },
   });
 
+   app.enableCors({
+    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    credentials: true,
+  });
 
   await app.listen(process.env.PORT ?? 3000);
 }
