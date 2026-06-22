@@ -4,6 +4,7 @@ import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-valid
 export class CreateOtpDto {
     userId: number
     email: string
+    userName?: string
     referral?: string
     resend_count?: number
 }
@@ -30,4 +31,10 @@ export class ResentOtpDto {
     @IsString()
     @IsNotEmpty()
     referral: string
+}
+
+export class RequestOtpByEmail {
+    @ApiProperty()
+    @IsEmail()
+    email: string
 }

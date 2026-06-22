@@ -36,7 +36,7 @@ export class AuthService {
         status: UserStatus.UNVERIFIED
       },
     });
-    const otpResponse = await this.otpService.createOtp({ userId: user.id, email: user.email })
+    const otpResponse = await this.otpService.createOtp({ userId: user.id, email: user.email, userName: user.name || undefined })
     const { referral } = otpResponse.otp
     return {
       message: "Registration successful. Please check your email for a verification code.",

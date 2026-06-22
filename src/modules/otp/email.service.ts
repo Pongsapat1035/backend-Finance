@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Resend } from "resend";
 import { buildOtpEmailHtml } from "./templates/otp.template";
@@ -8,20 +8,23 @@ export class EmailService {
     private readonly resend: Resend;
 
     constructor(private readonly configService: ConfigService) {
-        this.resend = new Resend(this.configService.get<string>('RESEND_API_KEY'));
+        const apiKey = this.configService.get<string>('RESEND_API_KEY');
+        if (!apiKey) {
+            throw new InternalServerErrorException('RESEND_API_KEY is not configured');
+        }
+
+        this.resend = new Resend(apiKey);
     }
 
-    async sendOtpEmail(to: string, otp: string) {
-        // Mock data — replace with real values when integrating
-        console.log("send otp is calling")
+    async sendOtpEmail(to: string, otp: string, userName = 'there') {
         const html = buildOtpEmailHtml({
-            user_name: 'Pongsapat',
-            action: 'sign in to your account',
+            user_name: userName,
+            action: 'verify your email address',
             otp_code: otp,
-            ip_address: '203.0.113.42',
+            ip_address: 'Unknown',
             timestamp: new Date().toLocaleString('en-GB', { timeZone: 'Asia/Bangkok' }),
-            location: 'Bangkok, Thailand',
-            device: 'Chrome on Windows',
+            location: 'Unknown',
+            device: 'Unknown',
             security_url: 'https://wealthdash.com/security',
             help_url: 'https://wealthdash.com/help',
             privacy_url: 'https://wealthdash.com/privacy',
@@ -30,17 +33,16 @@ export class EmailService {
 
         const { data, error } = await this.resend.emails.send({
             from: 'wealthDash <onboarding@resend.dev>',
-            to: [to],
-            subject: 'Your One-Time Password — wealthDash',
+            to: ["pongsapat357@gmail.com"],
+            subject: 'Your one-time password - wealthDash',
             html,
         });
 
         if (error) {
             console.error({ error });
-            return null;
+            throw new InternalServerErrorException('Failed to send OTP email');
         }
 
-        console.log({ data });
         return data;
     }
 }
