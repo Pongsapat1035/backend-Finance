@@ -15,16 +15,17 @@ datasource db {
 }
 
 model User {
-  id         Int        @id @default(autoincrement())
-  email      String     @unique
-  name       String?
-  password   String
-  status     UserStatus
-  bannedAt   DateTime?
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  otps       Otp[]
-  categories Category[]
+  id           Int           @id @default(autoincrement())
+  email        String        @unique
+  name         String?
+  password     String
+  status       UserStatus
+  bannedAt     DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  otps         Otp[]
+  categories   Category[]
+  transactions Transaction[]
 }
 
 model Otp {
@@ -48,6 +49,8 @@ model Transaction {
   categories  Category[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
+  userId      Int
+  users       User            @relation(fields: [userId], references: [id])
 }
 
 model Category {

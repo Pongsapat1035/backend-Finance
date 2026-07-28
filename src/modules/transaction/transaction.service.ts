@@ -7,7 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class TransactionService {
   constructor(private readonly prisma: PrismaService) { }
 
-  async create(createTransactionDto: CreateTransactionDto) {
+  async create(createTransactionDto: CreateTransactionDto, userId: number) {
     const { categoryId, date, type, ...rest } = createTransactionDto;
 
     const category = await this.prisma.category.findUnique({
@@ -30,20 +30,22 @@ export class TransactionService {
         categories: {
           connect: { id: categoryId },
         },
+        userId
       },
       include: { categories: true },
     });
   }
 
-  findAll() {
+  findAll(userId: number) {
     return this.prisma.transaction.findMany({
+      where: { userId },
       include: { categories: true },
     });
   }
 
-  async findOne(id: number) {
-    const transaction = await this.prisma.transaction.findUnique({
-      where: { id },
+  async findOne(id: number, userId: number) {
+    const transaction = await this.prisma.transaction.findFirst({
+      where: { id, userId },
       include: { categories: true },
     });
 
@@ -53,7 +55,9 @@ export class TransactionService {
     return transaction;
   }
 
-  async update(id: number, updateTransactionDto: UpdateTransactionDto) {
+  async update(id: number, userId: number, updateTransactionDto: UpdateTransactionDto) {
+    await this.findOne(id, userId);
+
     const { categoryId, date, ...rest } = updateTransactionDto;
     try {
       return await this.prisma.transaction.update({
@@ -77,7 +81,9 @@ export class TransactionService {
     }
   }
 
-  async remove(id: number) {
+  async remove(id: number, userId: number) {
+    await this.findOne(id, userId);
+
     try {
       return await this.prisma.transaction.delete({
         where: { id },
