@@ -1,11 +1,19 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { CreateTransactionDto, UpdateTransactionDto } from './dto/transaction.dto';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import {
+  CreateTransactionDto,
+  UpdateTransactionDto,
+} from './dto/transaction.dto';
 import dayjs from 'dayjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { PaginationDto } from 'src/utils/query.dto';
 
 @Injectable()
 export class TransactionService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createTransactionDto: CreateTransactionDto, userId: number) {
     const { categoryId, date, type, ...rest } = createTransactionDto;
@@ -19,7 +27,9 @@ export class TransactionService {
     }
 
     if (category.type !== type) {
-      throw new BadRequestException(`Category type (${category.type}) does not match transaction type (${type})`);
+      throw new BadRequestException(
+        `Category type (${category.type}) does not match transaction type (${type})`,
+      );
     }
 
     return await this.prisma.transaction.create({
@@ -30,17 +40,35 @@ export class TransactionService {
         categories: {
           connect: { id: categoryId },
         },
-        userId
+        userId,
       },
       include: { categories: true },
     });
   }
 
-  findAll(userId: number) {
-    return this.prisma.transaction.findMany({
-      where: { userId },
-      include: { categories: true },
-    });
+  async findAll(userId: number, dto: PaginationDto) {
+    const { page = 1, limit = 10 } = dto;
+    const skip = (page - 1) * limit;
+
+    const [lists, total] = await Promise.all([
+      this.prisma.transaction.findMany({
+        where: { userId },
+        include: { categories: true },
+        skip,
+        take: limit,
+      }),
+      this.prisma.transaction.count({ where: { userId } }),
+    ]);
+
+    return {
+      data: lists,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: number, userId: number) {
@@ -55,7 +83,11 @@ export class TransactionService {
     return transaction;
   }
 
-  async update(id: number, userId: number, updateTransactionDto: UpdateTransactionDto) {
+  async update(
+    id: number,
+    userId: number,
+    updateTransactionDto: UpdateTransactionDto,
+  ) {
     await this.findOne(id, userId);
 
     const { categoryId, date, ...rest } = updateTransactionDto;

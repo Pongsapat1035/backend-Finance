@@ -4,6 +4,7 @@ import { CreateTransactionDto, UpdateTransactionDto } from './dto/transaction.dt
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorator/user.decorator';
+import { PaginationDto } from 'src/utils/query.dto';
 
 @Controller('transaction')
 @ApiBearerAuth()
@@ -17,8 +18,8 @@ export class TransactionController {
   }
 
   @Get()
-  findAll(@CurrentUser('userId') userId: number) {
-    return this.transactionService.findAll(userId);
+  findAll(@CurrentUser('userId') userId: number, @Param() params: PaginationDto,) {
+    return this.transactionService.findAll(userId, params);
   }
 
   @Get(':id')
@@ -26,7 +27,7 @@ export class TransactionController {
     return this.transactionService.findOne(+id, userId);
   }
 
-  @Patch(':id')
+  @Patch(':id') 
   update(
     @Param('id') id: string,
     @Body() updateTransactionDto: UpdateTransactionDto,
