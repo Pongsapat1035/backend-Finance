@@ -57,7 +57,6 @@ model Category {
   id           Int             @id @default(autoincrement())
   title        String
   type         TransactionType
-  color        String          @default("#FFFFFF")
   users        User            @relation(fields: [userId], references: [id])
   transactions Transaction[]
   createdAt    DateTime        @default(now())
