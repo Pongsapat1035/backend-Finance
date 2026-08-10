@@ -1,4 +1,4 @@
-import { ApiProperty, PartialType } from "@nestjs/swagger";
+import { ApiProperty } from "@nestjs/swagger";
 import { IsDateString, IsEnum, IsNotEmpty, IsNumber, IsPositive, IsString } from "class-validator";
 import { TransactionType } from "generated/prisma/enums";
 
@@ -30,5 +30,5 @@ export class CreateTransactionDto {
     description: string
 }
 
-export class UpdateTransactionDto extends PartialType(CreateTransactionDto) { }
+export class UpdateTransactionDto extends CreateTransactionDto { }
 

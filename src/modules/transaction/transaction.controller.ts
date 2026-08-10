@@ -1,10 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { CreateTransactionDto, UpdateTransactionDto } from './dto/transaction.dto';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorator/user.decorator';
-import { PaginationDto } from 'src/utils/query.dto';
+import { PaginationDto, TransactionParams } from 'src/utils/query.dto';
 
 @Controller('transaction')
 @ApiBearerAuth()
@@ -18,8 +18,8 @@ export class TransactionController {
   }
 
   @Get()
-  findAll(@CurrentUser('userId') userId: number, @Param() params: PaginationDto,) {
-    return this.transactionService.findAll(userId, params);
+  findAll(@CurrentUser('userId') userId: number, @Query() query: TransactionParams,) {
+    return this.transactionService.findAll(userId, query);
   }
 
   @Get(':id')
@@ -27,7 +27,7 @@ export class TransactionController {
     return this.transactionService.findOne(+id, userId);
   }
 
-  @Patch(':id') 
+  @Put(':id')
   update(
     @Param('id') id: string,
     @Body() updateTransactionDto: UpdateTransactionDto,
