@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -19,6 +20,7 @@ dayjs.extend(duration);
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
   const config = new DocumentBuilder()
@@ -37,11 +39,15 @@ async function bootstrap() {
     },
   });
 
-   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+  app.enableCors({
+    origin: configService
+      .get<string>('CORS_ORIGINS', '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
     credentials: true,
   });
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(configService.get<number>('PORT') ?? 3000);
 }
 bootstrap();
