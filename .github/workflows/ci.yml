@@ -1,3 +1,6 @@
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -13,11 +16,11 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '22'
           cache: 'yarn'
 
       - run: yarn install --frozen-lockfile
+      - run: npx prisma generate
       - run: yarn lint
       - run: yarn test
-      - run: npx prisma generate
       - run: yarn build
