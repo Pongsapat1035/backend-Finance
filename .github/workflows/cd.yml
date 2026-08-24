@@ -17,6 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
 
+    env:
+      IMAGE_URI: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPOSITORY }}/backend:${{ github.sha }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -45,3 +48,27 @@ jobs:
           test "$ACTIVE_ACCOUNT" = "${{ vars.DEPLOYER_SERVICE_ACCOUNT }}"
           echo "Authenticated as: $ACTIVE_ACCOUNT"
           gcloud config get-value project
+
+      - name: Configure Docker authentication
+        run: |
+          gcloud auth configure-docker \
+            "${{ vars.GCP_REGION }}-docker.pkg.dev" \
+            --quiet
+
+      - name: Verify image URI
+        run: echo "Image URI:${IMAGE_URI}"
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            --tag "${IMAGE_URI}" \
+            .
+
+      - name:
+        run: |
+          docker image inspect "${IMAGE_URI}" \
+          --format='Image: {{.RepoTags}} | Platform: {{.Os}}/{{.Architecture}}'
+      
+      - name: Push Docker image
+        run: docker push "${IMAGE_URI}"
