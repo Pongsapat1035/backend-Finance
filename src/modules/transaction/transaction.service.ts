@@ -10,7 +10,7 @@ import {
 import { Prisma, TransactionType } from 'generated/prisma/client';
 import dayjs from 'dayjs';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaginationDto, TransactionParams } from 'src/utils/query.dto';
+import { TransactionParams } from 'src/utils/query.dto';
 
 @Injectable()
 export class TransactionService {

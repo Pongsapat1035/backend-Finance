@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 
 import { CreateUserDto, LoginDto } from './dto/auth.dto';
@@ -11,11 +19,10 @@ import { UserModel } from 'generated/prisma/models/User';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @ApiProperty()
-  @Post("signup")
+  @Post('signup')
   @HttpCode(HttpStatus.CREATED)
   signUp(@Body() createAuthDto: CreateUserDto) {
     return this.authService.create(createAuthDto);
@@ -23,15 +30,15 @@ export class AuthController {
 
   @ApiBody({ type: LoginDto })
   @UseGuards(LocalAuthGuard)
-  @Post("signin")
+  @Post('signin')
   signIn(@Req() req: Request) {
     return this.authService.login(req.user as UserModel);
   }
 
   @ApiProperty()
-  @Post("verify")
+  @Post('verify')
   verifyOtp(@Body() body: OtpVerify) {
-    return this.authService.verifyOtp(body)
+    return this.authService.verifyOtp(body);
   }
 
   // @Get()

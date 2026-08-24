@@ -7,19 +7,26 @@ import { UserStatus } from 'generated/prisma/enums';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private configService: ConfigService, private prisma: PrismaService) {
+  constructor(
+    private configService: ConfigService,
+    private prisma: PrismaService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') || 'my_super_secret_fallback_key',
+      secretOrKey:
+        configService.get<string>('JWT_SECRET') ||
+        'my_super_secret_fallback_key',
     });
   }
 
   async validate(payload: { userId: number }) {
-     const user = await this.prisma.user.findUnique({ where: { id: payload.userId } });
-  if (!user || user.status === UserStatus.BANNED) {
-    throw new ForbiddenException('Account is banned');
-  }
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.userId },
+    });
+    if (!user || user.status === UserStatus.BANNED) {
+      throw new ForbiddenException('Account is banned');
+    }
     return { userId: payload.userId };
   }
 }

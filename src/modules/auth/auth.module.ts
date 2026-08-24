@@ -17,7 +17,9 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       useFactory: (config: ConfigService) => {
         const secret = config.get<string>('JWT_SECRET');
         if (!secret) {
-          console.warn('WARNING: JWT_SECRET is not set in .env. Using fallback secret.');
+          console.warn(
+            'WARNING: JWT_SECRET is not set in .env. Using fallback secret.',
+          );
         }
         return {
           secret: secret || 'my_super_secret_fallback_key',
@@ -31,4 +33,4 @@ import { JwtStrategy } from './strategies/jwt.strategy';
   controllers: [AuthController],
   providers: [AuthService, LocalStrategy, JwtStrategy],
 })
-export class AuthModule { }
+export class AuthModule {}

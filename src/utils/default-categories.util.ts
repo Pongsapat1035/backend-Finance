@@ -1,5 +1,4 @@
-import { TransactionType } from "generated/prisma/enums";
-
+import { TransactionType } from 'generated/prisma/enums';
 
 export const getDefaultCategories = (userId: number) => {
   return [

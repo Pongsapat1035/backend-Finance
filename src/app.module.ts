@@ -9,8 +9,15 @@ import { CategoryModule } from './modules/category/category.module';
 import { TransactionModule } from './modules/transaction/transaction.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), AuthModule, OtpModule, PrismaModule, CategoryModule, TransactionModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    AuthModule,
+    OtpModule,
+    PrismaModule,
+    CategoryModule,
+    TransactionModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}
