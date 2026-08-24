@@ -1,0 +1,47 @@
+name: CD Authentication Check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  verify-authentication:
+    name: Verify GCP authentication
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.DEPLOYER_SERVICE_ACCOUNT }}
+      
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Verify active identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          gcloud auth print-access-token >/dev/null
+
+          ACTIVE_ACCOUNT="$(gcloud auth list \
+            --filter=status:ACTIVE \
+            --format='value(account)')"
+
+          test "$ACTIVE_ACCOUNT" = "${{ vars.DEPLOYER_SERVICE_ACCOUNT }}"
+          echo "Authenticated as: $ACTIVE_ACCOUNT"
+          gcloud config get-value project
