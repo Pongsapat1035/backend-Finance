@@ -1,4 +1,4 @@
-name: CD Authentication Check
+name: CD Deploy to Cloud Run
 
 on:
   workflow_dispatch:
@@ -30,7 +30,7 @@ jobs:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.DEPLOYER_SERVICE_ACCOUNT }}
-      
+
       - name: Set up Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v3
 
@@ -65,10 +65,19 @@ jobs:
             --tag "${IMAGE_URI}" \
             .
 
-      - name:
+      - name: Verify Docker image
         run: |
           docker image inspect "${IMAGE_URI}" \
-          --format='Image: {{.RepoTags}} | Platform: {{.Os}}/{{.Architecture}}'
-      
+            --format='Image: {{.RepoTags}} | Platform: {{.Os}}/{{.Architecture}}'
+
       - name: Push Docker image
         run: docker push "${IMAGE_URI}"
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "${{ vars.CLOUD_RUN_SERVICE }}" \
+            --project="${{ vars.GCP_PROJECT_ID }}" \
+            --region="${{ vars.GCP_REGION }}" \
+            --image="${IMAGE_URI}" \
+            --service-account="${{ vars.RUNTIME_SERVICE_ACCOUNT }}" \
+            --quiet
