@@ -53,10 +53,6 @@ export class CategoryService {
     };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} category`;
-  }
-
   async update(id: number, userId: number, dto: CategoryDto) {
     const res = await this.prisma.category.updateMany({
       where: { id, userId },

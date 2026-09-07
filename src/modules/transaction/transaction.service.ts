@@ -16,9 +16,9 @@ import { TransactionParams } from 'src/utils/query.dto';
 export class TransactionService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async validateCategoryByType(categoryId: number, type: TransactionType) {
+  async validateCategoryByType(categoryId: number, type: TransactionType, userId: number) {
     const category = await this.prisma.category.findUnique({
-      where: { id: categoryId },
+      where: { id: categoryId, userId },
     });
 
     if (!category) {
@@ -34,7 +34,7 @@ export class TransactionService {
 
   async create(createTransactionDto: CreateTransactionDto, userId: number) {
     const { categoryId, date, type, ...rest } = createTransactionDto;
-    await this.validateCategoryByType(categoryId, type);
+    await this.validateCategoryByType(categoryId, type, userId);
 
     return await this.prisma.transaction.create({
       data: {
@@ -106,7 +106,7 @@ export class TransactionService {
     await this.findOne(id, userId);
 
     const { categoryId, date, type, ...rest } = updateTransactionDto;
-    await this.validateCategoryByType(categoryId, type);
+    await this.validateCategoryByType(categoryId, type, userId);
 
     try {
       return await this.prisma.transaction.update({
