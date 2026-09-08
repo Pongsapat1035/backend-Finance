@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { NextFunction, Request, Response } from 'express';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import buddhist from 'dayjs/plugin/buddhistEra';
@@ -22,7 +23,7 @@ dayjs.extend(duration);
 function createSwaggerAuthMiddleware(username: string, password: string) {
   const credentials = Buffer.from(`${username}:${password}`).toString('base64');
 
-  return (req, res, next) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const isSwaggerPath =
       req.path === '/api' ||
       req.path.startsWith('/api/') ||
@@ -32,7 +33,7 @@ function createSwaggerAuthMiddleware(username: string, password: string) {
     if (req.headers.authorization === `Basic ${credentials}`) return next();
 
     res.setHeader('WWW-Authenticate', 'Basic realm="Finance API Docs"');
-    return res.status(401).send('Swagger authentication required');
+    res.status(401).send('Swagger authentication required');
   };
 }
 

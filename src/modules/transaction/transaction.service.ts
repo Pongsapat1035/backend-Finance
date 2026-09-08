@@ -16,7 +16,11 @@ import { TransactionParams } from 'src/utils/query.dto';
 export class TransactionService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async validateCategoryByType(categoryId: number, type: TransactionType, userId: number) {
+  async validateCategoryByType(
+    categoryId: number,
+    type: TransactionType,
+    userId: number,
+  ) {
     const category = await this.prisma.category.findUnique({
       where: { id: categoryId, userId },
     });

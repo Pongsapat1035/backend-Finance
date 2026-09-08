@@ -15,12 +15,14 @@ import { OtpVerify } from '../otp/otp.dto';
 import { LocalAuthGuard } from './guard/local-auth.guard';
 import { Request } from 'express';
 import { UserModel } from 'generated/prisma/models/User';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Throttle({ default: { ttl: 60_000, limit: 3 } })
   @ApiProperty()
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
@@ -28,6 +30,7 @@ export class AuthController {
     return this.authService.create(createAuthDto);
   }
 
+  @Throttle({ default: { ttl: 60_000, limit: 3 } })
   @ApiBody({ type: LoginDto })
   @UseGuards(LocalAuthGuard)
   @Post('signin')
@@ -35,29 +38,10 @@ export class AuthController {
     return this.authService.login(req.user as UserModel);
   }
 
+  @Throttle({ default: { ttl: 60_000, limit: 3 } })
   @ApiProperty()
   @Post('verify')
   verifyOtp(@Body() body: OtpVerify) {
     return this.authService.verifyOtp(body);
   }
-
-  // @Get()
-  // findAll() {
-  //   return this.authService.findAll();
-  // }
-
-  // @Get(':id')
-  // findOne(@Param('id') id: string) {
-  //   return this.authService.findOne(+id);
-  // }
-
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
-  //   return this.authService.update(+id, updateAuthDto);
-  // }
-
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.authService.remove(+id);
-  // }
 }
