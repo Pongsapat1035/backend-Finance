@@ -15,17 +15,18 @@ datasource db {
 }
 
 model User {
-  id           Int           @id @default(autoincrement())
-  email        String        @unique
-  name         String?
-  password     String
-  status       UserStatus    @default(UNVERIFIED)
-  bannedAt     DateTime?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  otps         Otp[]
-  categories   Category[]
-  transactions Transaction[]
+  id                    Int                    @id @default(autoincrement())
+  email                 String                 @unique
+  name                  String?
+  password              String
+  status                UserStatus             @default(UNVERIFIED)
+  bannedAt              DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  otps                  Otp[]
+  categories            Category[]
+  transactions          Transaction[]
+  recurringTransactions RecurringTransaction[]
 }
 
 model Otp {
@@ -41,31 +42,57 @@ model Otp {
 }
 
 model Transaction {
-  id          Int             @id @default(autoincrement())
+  id          Int              @id @default(autoincrement())
   type        TransactionType
   /// Amount in Thai satang (1/100 THB); for example, 12345 represents ฿123.45.
-  amount      Int
-  description String
-  date        DateTime
-  categoryId  Int
-  category    Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  userId      Int
-  users       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount                 Int
+  description            String
+  date                   DateTime
+  categoryId             Int
+  category               Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  userId                 Int
+  users                  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recurringTransactionId Int?
+  recurringTransaction   RecurringTransaction? @relation(fields: [recurringTransactionId], references: [id], onDelete: SetNull)
 }
 
 model Category {
-  id           Int             @id @default(autoincrement())
-  title        String
-  type         TransactionType
-  users        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  userId       Int
+  id                    Int                    @id @default(autoincrement())
+  title                 String
+  type                  TransactionType
+  users                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions          Transaction[]
+  recurringTransactions RecurringTransaction[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  userId                Int
 
   @@unique([userId, title, type])
+}
+
+model RecurringTransaction {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId  Int
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  title       String
+  description String?
+  /// Amount in Thai satang (1/100 THB); for example, 12345 represents ฿123.45.
+  amount      Int
+  /// Calendar day for this monthly expense. Application validation must allow only 1 through 31.
+  dayOfMonth  Int
+  startDate   DateTime
+  endDate     DateTime?
+  nextRunAt   DateTime
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  transactions Transaction[]
+
+  @@index([userId, isActive, nextRunAt])
 }
 
 enum TransactionType {
