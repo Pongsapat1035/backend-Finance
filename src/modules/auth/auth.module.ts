@@ -7,6 +7,7 @@ import { OtpModule } from '../otp/otp.module';
 import { PassportModule } from '@nestjs/passport';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { getJwtSecret } from './jwt.config';
 
 @Module({
   imports: [
@@ -15,14 +16,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        const secret = config.get<string>('JWT_SECRET');
-        if (!secret) {
-          console.warn(
-            'WARNING: JWT_SECRET is not set in .env. Using fallback secret.',
-          );
-        }
+        const secret = getJwtSecret(config);
+
         return {
-          secret: secret || 'my_super_secret_fallback_key',
+          secret,
           signOptions: {
             expiresIn: '7d',
           },
