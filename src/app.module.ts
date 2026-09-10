@@ -30,12 +30,11 @@ import { RecurringTransactionModule } from './modules/recurring-transaction/recu
     RecurringTransactionModule,
   ],
   controllers: [AppController],
-  providers: 
-  [
+  providers: [
     AppService,
     {
-    provide: APP_GUARD,
-    useClass: ThrottlerGuard,
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })
