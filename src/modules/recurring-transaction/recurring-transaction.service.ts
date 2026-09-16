@@ -163,6 +163,52 @@ export class RecurringTransactionService {
     };
   }
 
+  async upcoming(userId: number) {
+    const currentDate = dayjs().tz(SCHEDULE_TIME_ZONE);
+    const rangeStart = currentDate.startOf('day');
+    const rangeEnd = currentDate.add(30, 'day').endOf('day');
+    const where: Prisma.RecurringTransactionWhereInput = {
+      userId,
+      isActive: true,
+      nextRunAt: {
+        gte: rangeStart.toDate(),
+        lte: rangeEnd.toDate(),
+      },
+      OR: [
+        { endDate: null },
+        { endDate: { gte: this.prisma.recurringTransaction.fields.nextRunAt } },
+      ],
+    };
+    const candidates = await this.prisma.recurringTransaction.findMany({
+      where,
+      include: { category: true },
+      orderBy: [{ nextRunAt: 'asc' }, { id: 'asc' }],
+    });
+    const expectedTotal = candidates.reduce(
+      (total, recurringTransaction) => total + recurringTransaction.amount,
+      0,
+    );
+
+    return {
+      data: candidates.map((recurringTransaction) => ({
+        id: recurringTransaction.id,
+        description:
+          recurringTransaction.description ?? recurringTransaction.title,
+        category: recurringTransaction.category,
+        type: TransactionType.EXPEND,
+        amount: satangToBaht(recurringTransaction.amount),
+        dueDate: recurringTransaction.nextRunAt,
+      })),
+      meta: {
+        from: rangeStart.format('YYYY-MM-DD'),
+        to: rangeEnd.format('YYYY-MM-DD'),
+        timezone: SCHEDULE_TIME_ZONE,
+        total: candidates.length,
+        expectedTotal: satangToBaht(expectedTotal),
+      },
+    };
+  }
+
   async findOne(
     id: number,
     userId: number,

@@ -47,6 +47,11 @@ export class RecurringTransactionController {
     return this.recurringTransactionService.findAll(userId, query);
   }
 
+  @Get('upcoming')
+  upcoming(@CurrentUser('userId') userId: number) {
+    return this.recurringTransactionService.upcoming(userId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser('userId') userId: number) {
     return this.recurringTransactionService.findOne(+id, userId);

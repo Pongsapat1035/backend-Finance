@@ -12,6 +12,7 @@ describe('RecurringTransactionService', () => {
       count: jest.fn(),
       create: jest.fn(),
       delete: jest.fn(),
+      fields: { nextRunAt: 'nextRunAt' },
       findFirst: jest.fn(),
       findMany: jest.fn(),
       update: jest.fn(),
@@ -241,6 +242,73 @@ describe('RecurringTransactionService', () => {
           page: 1,
           limit: 10,
           totalPages: 0,
+        },
+      });
+    });
+  });
+
+  describe('upcoming', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('returns all active items in the 30-day window and their total', async () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-09-16T05:00:00.000Z'));
+      const rangeStart = new Date('2026-09-15T17:00:00.000Z');
+      const rangeEnd = new Date('2026-10-16T16:59:59.999Z');
+      const dueToday = recurringRecord({
+        id: 2,
+        description: 'September rent',
+        nextRunAt: rangeStart,
+      });
+      const dueLater = recurringRecord({
+        id: 3,
+        amount: 50000,
+        nextRunAt: new Date('2026-10-15T17:00:00.000Z'),
+      });
+      prisma.recurringTransaction.findMany.mockResolvedValue([
+        dueToday,
+        dueLater,
+      ]);
+
+      const result = await service.upcoming(10);
+
+      expect(prisma.recurringTransaction.findMany).toHaveBeenCalledWith({
+        where: {
+          userId: 10,
+          isActive: true,
+          nextRunAt: { gte: rangeStart, lte: rangeEnd },
+          OR: [{ endDate: null }, { endDate: { gte: 'nextRunAt' } }],
+        },
+        include: { category: true },
+        orderBy: [{ nextRunAt: 'asc' }, { id: 'asc' }],
+      });
+      expect(result).toEqual({
+        data: [
+          {
+            id: 2,
+            description: 'September rent',
+            category: expenseCategory,
+            type: TransactionType.EXPEND,
+            amount: 1200.5,
+            dueDate: rangeStart,
+          },
+          {
+            id: 3,
+            description: 'Rent',
+            category: expenseCategory,
+            type: TransactionType.EXPEND,
+            amount: 500,
+            dueDate: new Date('2026-10-15T17:00:00.000Z'),
+          },
+        ],
+        meta: {
+          from: '2026-09-16',
+          to: '2026-10-16',
+          timezone: 'Asia/Bangkok',
+          total: 2,
+          expectedTotal: 1700.5,
         },
       });
     });

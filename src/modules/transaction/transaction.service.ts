@@ -53,14 +53,28 @@ export class TransactionService {
   }
 
   async findAll(userId: number, query: TransactionParams) {
-    const { page = 1, limit = 10, keyword, categoryId, type, month } = query;
+    const {
+      page = 1,
+      limit = 10,
+      keyword,
+      search,
+      categoryId,
+      type,
+      month,
+      sortBy = 'date',
+      order = 'desc',
+    } = query;
     const skip = (page - 1) * limit;
+    const descriptionSearch = search ?? keyword;
     const where = {
       userId,
       ...(categoryId && { categoryId }),
       ...(type && { type }),
-      ...(keyword && {
-        description: { contains: keyword, mode: 'insensitive' as const },
+      ...(descriptionSearch && {
+        description: {
+          contains: descriptionSearch,
+          mode: 'insensitive' as const,
+        },
       }),
       ...(month && {
         date: {
@@ -73,6 +87,7 @@ export class TransactionService {
       this.prisma.transaction.findMany({
         where,
         include: { category: true },
+        orderBy: [{ [sortBy]: order }, { id: 'desc' }],
         skip,
         take: limit,
       }),

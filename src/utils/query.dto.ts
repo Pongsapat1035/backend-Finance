@@ -2,9 +2,11 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsEnum,
+  IsIn,
   IsInt,
   IsNumber,
   IsOptional,
+  IsString,
   Matches,
   Min,
 } from 'class-validator';
@@ -34,6 +36,13 @@ export class KeywordWithPagination extends PaginationDto {
 
 export class TransactionParams extends KeywordWithPagination {
   @ApiPropertyOptional({
+    description: 'Case-insensitive search over transaction descriptions',
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional({
     enum: TransactionType,
     description: 'Type of the transaction (e.g., INCOME or EXPEND)',
   })
@@ -46,6 +55,24 @@ export class TransactionParams extends KeywordWithPagination {
   @Type(() => Number)
   @IsNumber()
   categoryId?: number;
+
+  @ApiPropertyOptional({
+    description: 'Field used to sort transactions',
+    enum: ['date'],
+    default: 'date',
+  })
+  @IsOptional()
+  @IsIn(['date'])
+  sortBy = 'date' as const;
+
+  @ApiPropertyOptional({
+    description: 'Sort direction',
+    enum: ['asc', 'desc'],
+    default: 'desc',
+  })
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  order?: 'asc' | 'desc' = 'desc';
 
   @ApiPropertyOptional({
     description: 'Filter by month, format YYYY-MM',
