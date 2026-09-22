@@ -18,15 +18,40 @@ model User {
   id                    Int                    @id @default(autoincrement())
   email                 String                 @unique
   name                  String?
-  password              String
+  password              String?
+  googleSubject         String?                @unique
   status                UserStatus             @default(UNVERIFIED)
   bannedAt              DateTime?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   otps                  Otp[]
+  authHandoffCodes      AuthHandoffCode[]
   categories            Category[]
   transactions          Transaction[]
   recurringTransactions RecurringTransaction[]
+}
+
+model AuthHandoffCode {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash   String   @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+model GoogleOAuthAuthorization {
+  id           Int      @id @default(autoincrement())
+  stateHash    String   @unique
+  codeVerifier String
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([expiresAt])
 }
 
 model Otp {

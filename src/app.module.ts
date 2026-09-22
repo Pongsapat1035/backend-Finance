@@ -10,10 +10,15 @@ import { TransactionModule } from './modules/transaction/transaction.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { RecurringTransactionModule } from './modules/recurring-transaction/recurring-transaction.module';
+import { appConfig, validateEnvironment } from './config/app.config';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [appConfig],
+      validate: validateEnvironment,
+    }),
     ThrottlerModule.forRoot({
       throttlers: [
         {

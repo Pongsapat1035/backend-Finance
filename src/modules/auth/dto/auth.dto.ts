@@ -31,3 +31,13 @@ export class CreateUserDto extends LoginDto {
   @IsNotEmpty()
   name: string;
 }
+
+export class GoogleAuthExchangeDto {
+  @ApiProperty({
+    description:
+      'Short-lived, single-use code returned to the frontend after Google authentication.',
+  })
+  @IsString()
+  @IsNotEmpty()
+  code: string;
+}
