@@ -1,7 +1,7 @@
 import type { Category, RecurringTransaction } from 'generated/prisma/client';
 
 export type RecurringTransactionWithCategory = RecurringTransaction & {
-  category: Category;
+  category: Category | null;
 };
 
 export interface RecurringTransactionListResponse {

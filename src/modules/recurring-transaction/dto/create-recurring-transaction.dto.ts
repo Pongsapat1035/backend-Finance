@@ -11,6 +11,7 @@ import {
   IsString,
   Max,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import { KeywordWithPagination } from 'src/utils/query.dto';
 
@@ -20,15 +21,24 @@ function transformBoolean(value: unknown): unknown {
   return value;
 }
 
+function transformNullableInteger(value: unknown): unknown {
+  if (value === null) return null;
+  if (typeof value === 'string' && value.trim() === '') return value;
+  return Number(value);
+}
+
 export class CreateRecurringTransactionDto {
-  @ApiProperty({
-    description: 'The ID of the expense category for this recurring item',
+  @ApiPropertyOptional({
+    description:
+      'The expense category ID for this recurring item, or null for Uncategorized',
     example: 1,
+    nullable: true,
   })
-  @Type(() => Number)
-  @IsNumber()
-  @IsNotEmpty()
-  categoryId: number;
+  @Transform(({ value }) => transformNullableInteger(value))
+  @ValidateIf((_, value) => value !== null)
+  @IsInt()
+  @Min(1)
+  categoryId: number | null;
 
   @ApiProperty({
     description: 'A short title for the recurring expense',

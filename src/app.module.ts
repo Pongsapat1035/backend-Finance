@@ -11,6 +11,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { RecurringTransactionModule } from './modules/recurring-transaction/recurring-transaction.module';
 import { appConfig, validateEnvironment } from './config/app.config';
+import { BudgetModule } from './modules/budget/budget.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { appConfig, validateEnvironment } from './config/app.config';
     CategoryModule,
     TransactionModule,
     RecurringTransactionModule,
+    BudgetModule,
   ],
   controllers: [AppController],
   providers: [

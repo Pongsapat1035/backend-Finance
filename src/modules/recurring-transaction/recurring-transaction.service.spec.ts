@@ -1,6 +1,7 @@
 import { Prisma, TransactionType } from 'generated/prisma/client';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { RecurringTransactionService } from './recurring-transaction.service';
+import { CategoryService } from '../category/category.service';
 
 describe('RecurringTransactionService', () => {
   const prisma = {
@@ -20,6 +21,7 @@ describe('RecurringTransactionService', () => {
   };
   const service = new RecurringTransactionService(
     prisma as unknown as PrismaService,
+    new CategoryService(prisma as unknown as PrismaService),
   );
 
   const expenseCategory = {
@@ -115,7 +117,7 @@ describe('RecurringTransactionService', () => {
       });
 
       await expect(service.create(createDto(), 10)).rejects.toThrow(
-        'Recurring transactions require an EXPEND category',
+        'Category must be an EXPEND category',
       );
 
       expect(prisma.recurringTransaction.create).not.toHaveBeenCalled();

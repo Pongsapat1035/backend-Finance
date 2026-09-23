@@ -215,7 +215,7 @@ export class AuthService {
         name: payload.name,
       });
       const handoff = await this.createGoogleHandoffCode(googleUser.user.id);
-      const redirectUrl = new URL(frontendUrl);
+      const redirectUrl = new URL(`${frontendUrl}`);
       redirectUrl.searchParams.set('code', handoff.code);
 
       return {

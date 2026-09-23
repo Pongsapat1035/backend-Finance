@@ -82,3 +82,13 @@ export class TransactionParams extends KeywordWithPagination {
   @Matches(/^\d{4}-(0[1-9]|1[0-2])$/)
   month?: string;
 }
+
+export class CategoryParams extends KeywordWithPagination {
+  @ApiPropertyOptional({
+    enum: TransactionType,
+    description: 'Type of the transaction (e.g., INCOME or EXPEND)',
+  })
+  @IsOptional()
+  @IsEnum(TransactionType)
+  type?: TransactionType;
+}

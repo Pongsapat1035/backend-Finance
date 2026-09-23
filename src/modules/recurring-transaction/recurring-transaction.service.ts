@@ -18,64 +18,52 @@ import {
   RecurringTransactionListResponse,
   RecurringTransactionWithCategory,
 } from './types/recurring-transaction.type';
+import {
+  getMonthlyOccurrence,
+  PRODUCT_TIME_ZONE,
+} from '../budget/budget-period.util';
+import { CategoryService } from '../category/category.service';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const SCHEDULE_TIME_ZONE = 'Asia/Bangkok';
-
 @Injectable()
 export class RecurringTransactionService {
-  constructor(private readonly prisma: PrismaService) {}
-
-  private async validateExpenseCategory(categoryId: number, userId: number) {
-    const category = await this.prisma.category.findFirst({
-      where: { id: categoryId, userId },
-    });
-
-    if (!category) {
-      throw new NotFoundException(`Category #${categoryId} not found`);
-    }
-
-    if (category.type !== TransactionType.EXPEND) {
-      throw new BadRequestException(
-        'Recurring transactions require an EXPEND category',
-      );
-    }
-
-    return category;
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly categoryService: CategoryService,
+  ) {}
 
   private validateDateRange(startDate: Date, endDate?: Date | null) {
     if (
       endDate &&
       dayjs(endDate)
-        .tz(SCHEDULE_TIME_ZONE)
-        .isBefore(dayjs(startDate).tz(SCHEDULE_TIME_ZONE), 'day')
+        .tz(PRODUCT_TIME_ZONE)
+        .isBefore(dayjs(startDate).tz(PRODUCT_TIME_ZONE), 'day')
     ) {
       throw new BadRequestException('endDate must be on or after startDate');
     }
   }
 
-  private monthlyOccurrence(referenceDate: Date, dayOfMonth: number) {
-    const reference = dayjs(referenceDate).tz(SCHEDULE_TIME_ZONE);
-    return reference
-      .date(Math.min(dayOfMonth, reference.daysInMonth()))
-      .startOf('day');
-  }
-
   private calculateNextRunAt(startDate: Date, dayOfMonth: number) {
-    let nextRunAt = this.monthlyOccurrence(startDate, dayOfMonth);
-    const scheduledStartDate = dayjs(startDate).tz(SCHEDULE_TIME_ZONE);
+    const scheduledStartDate = dayjs(startDate).tz(PRODUCT_TIME_ZONE);
+    let nextRunAt = getMonthlyOccurrence(
+      scheduledStartDate.format('YYYY-MM'),
+      dayOfMonth,
+    );
 
-    if (nextRunAt.isBefore(scheduledStartDate, 'day')) {
-      nextRunAt = this.monthlyOccurrence(
-        scheduledStartDate.add(1, 'month').toDate(),
+    if (
+      dayjs(nextRunAt)
+        .tz(PRODUCT_TIME_ZONE)
+        .isBefore(scheduledStartDate, 'day')
+    ) {
+      nextRunAt = getMonthlyOccurrence(
+        scheduledStartDate.add(1, 'month').format('YYYY-MM'),
         dayOfMonth,
       );
     }
 
-    return nextRunAt.toDate();
+    return nextRunAt;
   }
 
   async create(
@@ -95,7 +83,7 @@ export class RecurringTransactionService {
     const parsedEndDate = endDate ? dayjs(endDate).toDate() : null;
 
     this.validateDateRange(parsedStartDate, parsedEndDate);
-    await this.validateExpenseCategory(categoryId, userId);
+    await this.categoryService.validateExpenseCategory(categoryId, userId);
 
     const recurringTransaction = await this.prisma.recurringTransaction.create({
       data: {
@@ -164,7 +152,7 @@ export class RecurringTransactionService {
   }
 
   async upcoming(userId: number) {
-    const currentDate = dayjs().tz(SCHEDULE_TIME_ZONE);
+    const currentDate = dayjs().tz(PRODUCT_TIME_ZONE);
     const rangeStart = currentDate.startOf('day');
     const rangeEnd = currentDate.add(30, 'day').endOf('day');
     const where: Prisma.RecurringTransactionWhereInput = {
@@ -202,7 +190,7 @@ export class RecurringTransactionService {
       meta: {
         from: rangeStart.format('YYYY-MM-DD'),
         to: rangeEnd.format('YYYY-MM-DD'),
-        timezone: SCHEDULE_TIME_ZONE,
+        timezone: PRODUCT_TIME_ZONE,
         total: candidates.length,
         expectedTotal: satangToBaht(expectedTotal),
       },
@@ -248,7 +236,7 @@ export class RecurringTransactionService {
     const parsedEndDate = endDate ? dayjs(endDate).toDate() : null;
 
     this.validateDateRange(parsedStartDate, parsedEndDate);
-    await this.validateExpenseCategory(categoryId, userId);
+    await this.categoryService.validateExpenseCategory(categoryId, userId);
 
     const scheduleChanged =
       existing.dayOfMonth !== dayOfMonth ||
