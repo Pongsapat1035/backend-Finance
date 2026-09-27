@@ -10,8 +10,10 @@ import { TransactionModule } from './modules/transaction/transaction.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { RecurringTransactionModule } from './modules/recurring-transaction/recurring-transaction.module';
+import { SummaryModule } from './summary/summary.module';
 import { appConfig, validateEnvironment } from './config/app.config';
 import { BudgetModule } from './modules/budget/budget.module';
+import { UserModule } from './modules/user/user.module';
 
 @Module({
   imports: [
@@ -34,7 +36,9 @@ import { BudgetModule } from './modules/budget/budget.module';
     CategoryModule,
     TransactionModule,
     RecurringTransactionModule,
+    SummaryModule,
     BudgetModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [
