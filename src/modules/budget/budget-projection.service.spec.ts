@@ -17,6 +17,10 @@ describe('BudgetProjectionService', () => {
   const service = new BudgetProjectionService(
     prisma as unknown as PrismaService,
   );
+  const rawQueries = () =>
+    tx.$executeRaw.mock.calls as unknown as Array<
+      [{ sql: string; values: unknown[] }]
+    >;
 
   const expense = (overrides = {}) => ({
     userId: 1,
@@ -29,16 +33,15 @@ describe('BudgetProjectionService', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    prisma.$transaction.mockImplementation(async (callback) => callback(tx));
+    prisma.$transaction.mockImplementation(
+      (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+    );
   });
 
   it('atomically adds spending for a categorized expense', async () => {
     await service.applyTransactionChange(tx as never, null, expense());
 
-    const query = tx.$executeRaw.mock.calls[0][0] as {
-      sql: string;
-      values: unknown[];
-    };
+    const query = rawQueries()[0][0];
     expect(query.sql).toContain(
       'ON CONFLICT ("userId", "categoryId", "period") WHERE "categoryId" IS NOT NULL',
     );
@@ -56,10 +59,7 @@ describe('BudgetProjectionService', () => {
       expense({ categoryId: null }),
     );
 
-    const query = tx.$executeRaw.mock.calls[0][0] as {
-      sql: string;
-      values: unknown[];
-    };
+    const query = rawQueries()[0][0];
     expect(query.sql).toContain(
       'ON CONFLICT ("userId", "period") WHERE "categoryId" IS NULL',
     );
@@ -77,9 +77,7 @@ describe('BudgetProjectionService', () => {
       }),
     );
 
-    const queries = tx.$executeRaw.mock.calls.map(
-      ([query]) => query as { values: unknown[] },
-    );
+    const queries = rawQueries().map(([query]) => query);
     expect(queries.map((query) => query.values)).toEqual([
       [1, 4, '2026-09', -1000],
       [1, 7, '2026-10', 2500],
@@ -94,7 +92,7 @@ describe('BudgetProjectionService', () => {
     );
 
     expect(tx.$executeRaw).toHaveBeenCalledTimes(1);
-    const query = tx.$executeRaw.mock.calls[0][0] as { values: unknown[] };
+    const query = rawQueries()[0][0];
     expect(query.values).toEqual([1, 4, '2026-09', 1500]);
   });
 

@@ -11,8 +11,9 @@ import { Prisma, TransactionType } from 'generated/prisma/client';
 import dayjs from 'dayjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionParams } from 'src/utils/query.dto';
-import { bahtToSatang, satangToBaht } from 'src/utils/currency.util';
+import { satangToBaht } from 'src/utils/currency';
 import { BudgetProjectionService } from '../budget/budget-projection.service';
+import { getPeriodRange } from 'src/utils/period';
 
 @Injectable()
 export class TransactionService {
@@ -58,7 +59,7 @@ export class TransactionService {
       const created = await tx.transaction.create({
         data: {
           ...rest,
-          amount: bahtToSatang(amount),
+          amount,
           type,
           date: dayjs(date).toDate(),
           categoryId,
@@ -91,6 +92,7 @@ export class TransactionService {
     } = query;
     const skip = (page - 1) * limit;
     const descriptionSearch = search ?? keyword;
+    const monthRange = month ? getPeriodRange(month) : null;
     const where = {
       userId,
       ...(categoryId && { categoryId }),
@@ -101,11 +103,8 @@ export class TransactionService {
           mode: 'insensitive' as const,
         },
       }),
-      ...(month && {
-        date: {
-          gte: dayjs(month, 'YYYY-MM').startOf('month').toDate(),
-          lte: dayjs(month, 'YYYY-MM').endOf('month').toDate(),
-        },
+      ...(monthRange && {
+        date: { gte: monthRange.start, lt: monthRange.end },
       }),
     };
     const [lists, total] = await Promise.all([
@@ -176,7 +175,7 @@ export class TransactionService {
           where: { id },
           data: {
             ...rest,
-            amount: bahtToSatang(amount),
+            amount,
             type,
             date: dayjs(date).toDate(),
             categoryId,

@@ -7,13 +7,16 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
-  IsPositive,
   IsString,
   Max,
   Min,
   ValidateIf,
 } from 'class-validator';
 import { KeywordWithPagination } from 'src/utils/query.dto';
+import {
+  BahtToSatang,
+  MAX_MINOR_AMOUNT,
+} from 'src/decorator/money-transform.decorator';
 
 function transformBoolean(value: unknown): unknown {
   if (value === 'true') return true;
@@ -59,10 +62,12 @@ export class CreateRecurringTransactionDto {
   @ApiProperty({
     description: 'Amount in Thai baht',
     example: 12000.5,
+    maximum: MAX_MINOR_AMOUNT / 100,
   })
-  @Type(() => Number)
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @IsPositive()
+  @BahtToSatang()
+  @IsInt({ message: 'amount must be a number with at most 2 decimal places' })
+  @Min(1)
+  @Max(MAX_MINOR_AMOUNT)
   @IsNotEmpty()
   amount: number;
 

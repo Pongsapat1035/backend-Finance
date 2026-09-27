@@ -18,7 +18,7 @@ import { OtpVerify } from '../otp/otp.dto';
 import dayjs from 'dayjs';
 import { OtpType, UserStatus } from 'generated/prisma/enums';
 import { UserModel } from 'generated/prisma/models/User';
-import { getDefaultCategories } from '../../utils/default-categories.util';
+import { getDefaultCategories } from '../../utils/default-categories';
 import { ConfigType } from '@nestjs/config';
 import { CodeChallengeMethod, OAuth2Client } from 'google-auth-library';
 import { createHash, randomBytes } from 'crypto';

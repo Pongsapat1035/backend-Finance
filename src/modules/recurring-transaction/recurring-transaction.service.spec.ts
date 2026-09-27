@@ -46,7 +46,7 @@ describe('RecurringTransactionService', () => {
   const createDto = (overrides = {}) => ({
     categoryId: 1,
     title: 'Rent',
-    amount: 1200.5,
+    amount: 120050,
     dayOfMonth: 1,
     startDate: '2026-09-01T00:00:00.000Z',
     ...overrides,
@@ -354,7 +354,7 @@ describe('RecurringTransactionService', () => {
         1,
         10,
         createDto({
-          amount: 1500.5,
+          amount: 150050,
           title: 'New rent',
           endDate: '2026-12-01T00:00:00.000Z',
           isActive: false,

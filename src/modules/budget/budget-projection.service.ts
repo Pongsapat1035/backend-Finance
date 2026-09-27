@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, Transaction, TransactionType } from 'generated/prisma/client';
-import { getPeriodForDate, getPeriodRange } from './budget-period.util';
+import { getPeriodForDate, getPeriodRange } from 'src/utils/period';
 import { PrismaService } from '../prisma/prisma.service';
 
 type BudgetTransaction = Pick<

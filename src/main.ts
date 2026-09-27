@@ -4,21 +4,8 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NextFunction, Request, Response } from 'express';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import buddhist from 'dayjs/plugin/buddhistEra';
-import timezone from 'dayjs/plugin/timezone';
-import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
-import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
-import duration from 'dayjs/plugin/duration';
+import './config/dayjs.config';
 import helmet from 'helmet';
-
-dayjs.extend(buddhist);
-dayjs.extend(utc);
-dayjs.extend(timezone);
-dayjs.extend(isSameOrBefore);
-dayjs.extend(isSameOrAfter);
-dayjs.extend(duration);
 
 function createSwaggerAuthMiddleware(username: string, password: string) {
   const credentials = Buffer.from(`${username}:${password}`).toString('base64');
