@@ -1,13 +1,18 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
   IsInt,
   IsNotEmpty,
   IsString,
   Matches,
+  Max,
   Min,
   ValidateIf,
 } from 'class-validator';
+import {
+  BahtToSatang,
+  MAX_MINOR_AMOUNT,
+} from 'src/decorator/money-transform.decorator';
 
 function transformNullableInteger(value: unknown): unknown {
   if (value === null) return null;
@@ -38,13 +43,17 @@ export class CreateBudgetDto {
   categoryId: number | null;
 
   @ApiProperty({
-    description: 'Planned amount in Thai satang',
-    example: 500000,
+    description: 'Planned amount in Thai baht; stored as integer satang',
+    example: 5000.25,
     minimum: 0,
+    maximum: MAX_MINOR_AMOUNT / 100,
   })
-  @Type(() => Number)
-  @IsInt()
+  @BahtToSatang()
+  @IsInt({
+    message: 'plannedAmount must be a number with at most 2 decimal places',
+  })
   @Min(0)
+  @Max(MAX_MINOR_AMOUNT)
   @IsNotEmpty()
   plannedAmount: number;
 }

@@ -3,12 +3,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, TransactionType } from 'generated/prisma/client';
+import { Budget, Prisma, TransactionType } from 'generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { BudgetProjectionService } from './budget-projection.service';
 import { CategoryService } from '../category/category.service';
+import { satangToBaht } from 'src/utils/currency';
 
 type BudgetRow = {
+  id: number | null;
   categoryId: number | null;
   category: { id: number; title: string; type: TransactionType } | null;
   label?: 'Uncategorized';
@@ -32,12 +34,13 @@ export class BudgetService {
 
   private toRow(
     category: { id: number; title: string; type: TransactionType } | null,
-    budget?: { plannedAmount: number | null; spentAmount: number },
+    budget?: { id: number; plannedAmount: number | null; spentAmount: number },
   ): BudgetRow {
     const planned = budget?.plannedAmount ?? 0;
     const spent = budget?.spentAmount ?? 0;
 
     return {
+      id: budget?.id ?? null,
       categoryId: category?.id ?? null,
       category,
       ...(category === null && { label: 'Uncategorized' as const }),
@@ -47,6 +50,17 @@ export class BudgetService {
       remaining: planned - spent,
       isOverBudget: spent > planned,
       percentUsed: planned > 0 ? (spent / planned) * 100 : 0,
+    };
+  }
+
+  private toBudgetResponse(budget: Budget) {
+    return {
+      ...budget,
+      plannedAmount:
+        budget.plannedAmount === null
+          ? null
+          : satangToBaht(budget.plannedAmount),
+      spentAmount: satangToBaht(budget.spentAmount),
     };
   }
 
@@ -63,16 +77,23 @@ export class BudgetService {
     }
 
     if (existing) {
-      return this.prisma.budget.update({
+      const budget = await this.prisma.budget.update({
         where: { id: existing.id },
         data: { plannedAmount },
       });
+      return this.toBudgetResponse(budget);
     }
 
     try {
-      return await this.prisma.budget.create({
-        data: { userId, categoryId, period, plannedAmount },
+      const budget = await this.prisma.budget.create({
+        data: {
+          userId,
+          categoryId,
+          period,
+          plannedAmount,
+        },
       });
+      return this.toBudgetResponse(budget);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -95,9 +116,7 @@ export class BudgetService {
       this.prisma.budget.findMany({ where: { userId, period } }),
     ]);
     const budgetsByCategoryId = new Map(
-      budgets
-        .filter((budget) => budget.categoryId !== null)
-        .map((budget) => [budget.categoryId!, budget]),
+      budgets.map((budget) => [budget.categoryId, budget]),
     );
     const rows: BudgetRow[] = categories.map((category) =>
       this.toRow(category, budgetsByCategoryId.get(category.id)),
@@ -115,33 +134,61 @@ export class BudgetService {
         totalPlanned: totals.totalPlanned + row.planned,
         totalSpent: totals.totalSpent + row.spent,
         totalRemaining: totals.totalRemaining + row.remaining,
+        plannedBudgetCount: totals.plannedBudgetCount + (row.hasBudget ? 1 : 0),
       }),
-      { totalPlanned: 0, totalSpent: 0, totalRemaining: 0 },
+      {
+        totalPlanned: 0,
+        totalSpent: 0,
+        totalRemaining: 0,
+        plannedBudgetCount: 0,
+      },
     );
 
-    return { period, data: rows, summary };
+    return {
+      period,
+      data: rows.map((row) => ({
+        ...row,
+        planned: satangToBaht(row.planned),
+        spent: satangToBaht(row.spent),
+        remaining: satangToBaht(row.remaining),
+      })),
+      summary: {
+        ...summary,
+        totalPlanned: satangToBaht(summary.totalPlanned),
+        totalSpent: satangToBaht(summary.totalSpent),
+        totalRemaining: satangToBaht(summary.totalRemaining),
+        percentOfPlanned:
+          summary.totalPlanned > 0
+            ? Math.round((summary.totalSpent / summary.totalPlanned) * 100)
+            : 0,
+      },
+    };
   }
 
   async findExceeded({ period }: { period: string }, userId: number) {
     const { data } = await this.findAll({ period }, userId);
     const exceeded = data
       .filter((row) => row.hasBudget && row.isOverBudget)
-      .map((row) => ({ ...row, exceededBy: row.spent - row.planned }));
+      .map((row) => ({ ...row, exceededBy: -row.remaining }));
 
     return {
       period,
       data: exceeded,
       summary: {
         categoryCount: exceeded.length,
-        totalExceeded: exceeded.reduce(
-          (total, row) => total + row.exceededBy,
-          0,
+        totalExceeded: Number(
+          exceeded.reduce((total, row) => total + row.exceededBy, 0).toFixed(2),
         ),
       },
     };
   }
 
   async findOne(id: number, userId: number) {
+    const budget = await this.findRawBudget(id, userId);
+    return this.toBudgetResponse(budget);
+  }
+
+  private async findRawBudget(id: number, userId: number) {
     const budget = await this.prisma.budget.findFirst({
       where: { id, userId },
     });
@@ -154,7 +201,10 @@ export class BudgetService {
   }
 
   async update(id: number, updateBudgetDto: UpdateBudgetDto, userId: number) {
-    const existing = await this.findOne(id, userId);
+    if (updateBudgetDto.plannedAmount === null) {
+      throw new BadRequestException('plannedAmount must be a baht amount');
+    }
+    const existing = await this.findRawBudget(id, userId);
     const categoryId =
       updateBudgetDto.categoryId === undefined
         ? existing.categoryId
@@ -162,20 +212,25 @@ export class BudgetService {
     const period = updateBudgetDto.period ?? existing.period;
 
     if (categoryId === existing.categoryId && period === existing.period) {
-      if (updateBudgetDto.plannedAmount === undefined) return existing;
+      if (updateBudgetDto.plannedAmount === undefined) {
+        return this.toBudgetResponse(existing);
+      }
 
-      return this.prisma.budget.update({
+      const budget = await this.prisma.budget.update({
         where: { id, userId },
         data: { plannedAmount: updateBudgetDto.plannedAmount },
       });
+      return this.toBudgetResponse(budget);
     }
 
     await this.categoryService.validateExpenseCategory(categoryId, userId);
     const plannedAmount =
-      updateBudgetDto.plannedAmount ?? existing.plannedAmount;
+      updateBudgetDto.plannedAmount === undefined
+        ? existing.plannedAmount
+        : updateBudgetDto.plannedAmount;
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const budget = await this.prisma.$transaction(async (tx) => {
         const target = await tx.budget.findFirst({
           where: { userId, categoryId, period },
         });
@@ -212,6 +267,7 @@ export class BudgetService {
 
         return updated;
       });
+      return this.toBudgetResponse(budget);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -226,16 +282,17 @@ export class BudgetService {
   }
 
   async remove(id: number, userId: number) {
-    const budget = await this.findOne(id, userId);
+    const budget = await this.findRawBudget(id, userId);
 
-    if (budget.spentAmount > 0) {
-      return this.prisma.budget.update({
-        where: { id },
-        data: { plannedAmount: null },
-      });
-    }
+    const result =
+      budget.spentAmount > 0
+        ? await this.prisma.budget.update({
+            where: { id },
+            data: { plannedAmount: null },
+          })
+        : await this.prisma.budget.delete({ where: { id } });
 
-    return this.prisma.budget.delete({ where: { id } });
+    return this.toBudgetResponse(result);
   }
 
   async reconcile(userId: number, period: string, categoryId?: number | null) {
