@@ -9,6 +9,7 @@ describe('CategoryService', () => {
       findFirst: jest.fn(),
       findMany: jest.fn(),
       count: jest.fn(),
+      updateMany: jest.fn(),
     },
   };
   const service = new CategoryService(prisma as unknown as PrismaService);
@@ -66,5 +67,50 @@ describe('CategoryService', () => {
     await expect(service.validateExpenseCategory(1, 10)).resolves.toEqual(
       expense,
     );
+  });
+
+  it('rejects changing a category type without updating it', async () => {
+    prisma.category.findFirst.mockResolvedValue({
+      type: TransactionType.EXPEND,
+    });
+
+    await expect(
+      service.update(1, 10, { title: 'Food', type: TransactionType.INCOME }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(prisma.category.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('allows renaming a category while preserving its type', async () => {
+    prisma.category.findFirst.mockResolvedValue({
+      type: TransactionType.EXPEND,
+    });
+    prisma.category.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      service.update(1, 10, {
+        title: 'Groceries',
+        type: TransactionType.EXPEND,
+      }),
+    ).resolves.toEqual({ message: 'Category updated successfully' });
+
+    expect(prisma.category.updateMany).toHaveBeenCalledWith({
+      where: { id: 1, userId: 10 },
+      data: { title: 'Groceries' },
+    });
+  });
+
+  it('does not update a category owned by another user', async () => {
+    prisma.category.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.update(1, 10, { title: 'Food', type: TransactionType.EXPEND }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(prisma.category.findFirst).toHaveBeenCalledWith({
+      where: { id: 1, userId: 10 },
+      select: { type: true },
+    });
+    expect(prisma.category.updateMany).not.toHaveBeenCalled();
   });
 });

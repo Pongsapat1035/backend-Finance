@@ -83,9 +83,22 @@ export class CategoryService {
   }
 
   async update(id: number, userId: number, dto: CategoryDto) {
+    const category = await this.prisma.category.findFirst({
+      where: { id, userId },
+      select: { type: true },
+    });
+
+    if (!category) {
+      throw new NotFoundException('Category not found or access denied');
+    }
+
+    if (dto.type !== category.type) {
+      throw new BadRequestException('Category type cannot be changed');
+    }
+
     const res = await this.prisma.category.updateMany({
       where: { id, userId },
-      data: dto,
+      data: { title: dto.title },
     });
 
     if (res.count === 0) {
