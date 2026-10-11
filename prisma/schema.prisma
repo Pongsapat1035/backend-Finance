@@ -18,15 +18,41 @@ model User {
   id                    Int                    @id @default(autoincrement())
   email                 String                 @unique
   name                  String?
-  password              String
+  password              String?
+  googleSubject         String?                @unique
   status                UserStatus             @default(UNVERIFIED)
   bannedAt              DateTime?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   otps                  Otp[]
+  authHandoffCodes      AuthHandoffCode[]
   categories            Category[]
   transactions          Transaction[]
   recurringTransactions RecurringTransaction[]
+  budgets               Budget[]
+}
+
+model AuthHandoffCode {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash   String   @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+model GoogleOAuthAuthorization {
+  id           Int      @id @default(autoincrement())
+  stateHash    String   @unique
+  codeVerifier String
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([expiresAt])
 }
 
 model Otp {
@@ -48,14 +74,16 @@ model Transaction {
   amount                 Int
   description            String
   date                   DateTime
-  categoryId             Int
-  category               Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  categoryId             Int?
+  category               Category?        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
   userId                 Int
   users                  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   recurringTransactionId Int?
   recurringTransaction   RecurringTransaction? @relation(fields: [recurringTransactionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, type, date])
 }
 
 model Category {
@@ -65,6 +93,7 @@ model Category {
   users                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions          Transaction[]
   recurringTransactions RecurringTransaction[]
+  budgets               Budget[]
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   userId                Int
@@ -76,8 +105,8 @@ model RecurringTransaction {
   id          Int      @id @default(autoincrement())
   userId      Int
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  categoryId  Int
-  category    Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  categoryId  Int?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   title       String
   description String?
   /// Amount in Thai satang (1/100 THB); for example, 12345 represents ฿123.45.
@@ -93,6 +122,22 @@ model RecurringTransaction {
   transactions Transaction[]
 
   @@index([userId, isActive, nextRunAt])
+}
+
+model Budget {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId    Int?
+  category      Category? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  period        String
+  plannedAmount Int?
+  spentAmount   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, period])
+  @@index([userId, categoryId, period])
 }
 
 enum TransactionType {

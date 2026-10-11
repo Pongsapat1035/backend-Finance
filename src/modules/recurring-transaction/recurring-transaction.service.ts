@@ -4,11 +4,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, TransactionType } from 'generated/prisma/client';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
+import dayjs, { PRODUCT_TIME_ZONE } from '../../config/dayjs.config';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
-import { bahtToSatang, satangToBaht } from 'src/utils/currency.util';
+import { satangToBaht } from 'src/utils/currency';
 import {
   CreateRecurringTransactionDto,
   RecurringTransactionParams,
@@ -18,64 +16,37 @@ import {
   RecurringTransactionListResponse,
   RecurringTransactionWithCategory,
 } from './types/recurring-transaction.type';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
-
-const SCHEDULE_TIME_ZONE = 'Asia/Bangkok';
+import { getMonthlyOccurrence } from 'src/utils/period';
+import { CategoryService } from '../category/category.service';
 
 @Injectable()
 export class RecurringTransactionService {
-  constructor(private readonly prisma: PrismaService) {}
-
-  private async validateExpenseCategory(categoryId: number, userId: number) {
-    const category = await this.prisma.category.findFirst({
-      where: { id: categoryId, userId },
-    });
-
-    if (!category) {
-      throw new NotFoundException(`Category #${categoryId} not found`);
-    }
-
-    if (category.type !== TransactionType.EXPEND) {
-      throw new BadRequestException(
-        'Recurring transactions require an EXPEND category',
-      );
-    }
-
-    return category;
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly categoryService: CategoryService,
+  ) {}
 
   private validateDateRange(startDate: Date, endDate?: Date | null) {
-    if (
-      endDate &&
-      dayjs(endDate)
-        .tz(SCHEDULE_TIME_ZONE)
-        .isBefore(dayjs(startDate).tz(SCHEDULE_TIME_ZONE), 'day')
-    ) {
+    if (endDate && dayjs(endDate).tz().isBefore(dayjs(startDate).tz(), 'day')) {
       throw new BadRequestException('endDate must be on or after startDate');
     }
   }
 
-  private monthlyOccurrence(referenceDate: Date, dayOfMonth: number) {
-    const reference = dayjs(referenceDate).tz(SCHEDULE_TIME_ZONE);
-    return reference
-      .date(Math.min(dayOfMonth, reference.daysInMonth()))
-      .startOf('day');
-  }
-
   private calculateNextRunAt(startDate: Date, dayOfMonth: number) {
-    let nextRunAt = this.monthlyOccurrence(startDate, dayOfMonth);
-    const scheduledStartDate = dayjs(startDate).tz(SCHEDULE_TIME_ZONE);
+    const scheduledStartDate = dayjs(startDate).tz();
+    let nextRunAt = getMonthlyOccurrence(
+      scheduledStartDate.format('YYYY-MM'),
+      dayOfMonth,
+    );
 
-    if (nextRunAt.isBefore(scheduledStartDate, 'day')) {
-      nextRunAt = this.monthlyOccurrence(
-        scheduledStartDate.add(1, 'month').toDate(),
+    if (dayjs(nextRunAt).tz().isBefore(scheduledStartDate, 'day')) {
+      nextRunAt = getMonthlyOccurrence(
+        scheduledStartDate.add(1, 'month').format('YYYY-MM'),
         dayOfMonth,
       );
     }
 
-    return nextRunAt.toDate();
+    return nextRunAt;
   }
 
   async create(
@@ -95,12 +66,12 @@ export class RecurringTransactionService {
     const parsedEndDate = endDate ? dayjs(endDate).toDate() : null;
 
     this.validateDateRange(parsedStartDate, parsedEndDate);
-    await this.validateExpenseCategory(categoryId, userId);
+    await this.categoryService.validateExpenseCategory(categoryId, userId);
 
     const recurringTransaction = await this.prisma.recurringTransaction.create({
       data: {
         ...data,
-        amount: bahtToSatang(amount),
+        amount,
         categoryId,
         userId,
         startDate: parsedStartDate,
@@ -163,6 +134,52 @@ export class RecurringTransactionService {
     };
   }
 
+  async upcoming(userId: number) {
+    const currentDate = dayjs().tz();
+    const rangeStart = currentDate.startOf('day');
+    const rangeEnd = currentDate.add(30, 'day').endOf('day');
+    const where: Prisma.RecurringTransactionWhereInput = {
+      userId,
+      isActive: true,
+      nextRunAt: {
+        gte: rangeStart.toDate(),
+        lte: rangeEnd.toDate(),
+      },
+      OR: [
+        { endDate: null },
+        { endDate: { gte: this.prisma.recurringTransaction.fields.nextRunAt } },
+      ],
+    };
+    const candidates = await this.prisma.recurringTransaction.findMany({
+      where,
+      include: { category: true },
+      orderBy: [{ nextRunAt: 'asc' }, { id: 'asc' }],
+    });
+    const expectedTotal = candidates.reduce(
+      (total, recurringTransaction) => total + recurringTransaction.amount,
+      0,
+    );
+
+    return {
+      data: candidates.map((recurringTransaction) => ({
+        id: recurringTransaction.id,
+        description:
+          recurringTransaction.description ?? recurringTransaction.title,
+        category: recurringTransaction.category,
+        type: TransactionType.EXPEND,
+        amount: satangToBaht(recurringTransaction.amount),
+        dueDate: recurringTransaction.nextRunAt,
+      })),
+      meta: {
+        from: rangeStart.format('YYYY-MM-DD'),
+        to: rangeEnd.format('YYYY-MM-DD'),
+        timezone: PRODUCT_TIME_ZONE,
+        total: candidates.length,
+        expectedTotal: satangToBaht(expectedTotal),
+      },
+    };
+  }
+
   async findOne(
     id: number,
     userId: number,
@@ -202,7 +219,7 @@ export class RecurringTransactionService {
     const parsedEndDate = endDate ? dayjs(endDate).toDate() : null;
 
     this.validateDateRange(parsedStartDate, parsedEndDate);
-    await this.validateExpenseCategory(categoryId, userId);
+    await this.categoryService.validateExpenseCategory(categoryId, userId);
 
     const scheduleChanged =
       existing.dayOfMonth !== dayOfMonth ||
@@ -214,7 +231,7 @@ export class RecurringTransactionService {
           where: { id },
           data: {
             ...data,
-            amount: bahtToSatang(amount),
+            amount,
             categoryId,
             startDate: parsedStartDate,
             endDate: parsedEndDate,

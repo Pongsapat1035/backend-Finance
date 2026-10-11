@@ -7,12 +7,16 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
-  IsPositive,
   IsString,
   Max,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import { KeywordWithPagination } from 'src/utils/query.dto';
+import {
+  BahtToSatang,
+  MAX_MINOR_AMOUNT,
+} from 'src/decorator/money-transform.decorator';
 
 function transformBoolean(value: unknown): unknown {
   if (value === 'true') return true;
@@ -20,15 +24,24 @@ function transformBoolean(value: unknown): unknown {
   return value;
 }
 
+function transformNullableInteger(value: unknown): unknown {
+  if (value === null) return null;
+  if (typeof value === 'string' && value.trim() === '') return value;
+  return Number(value);
+}
+
 export class CreateRecurringTransactionDto {
-  @ApiProperty({
-    description: 'The ID of the expense category for this recurring item',
+  @ApiPropertyOptional({
+    description:
+      'The expense category ID for this recurring item, or null for Uncategorized',
     example: 1,
+    nullable: true,
   })
-  @Type(() => Number)
-  @IsNumber()
-  @IsNotEmpty()
-  categoryId: number;
+  @Transform(({ value }) => transformNullableInteger(value))
+  @ValidateIf((_, value) => value !== null)
+  @IsInt()
+  @Min(1)
+  categoryId: number | null;
 
   @ApiProperty({
     description: 'A short title for the recurring expense',
@@ -49,10 +62,12 @@ export class CreateRecurringTransactionDto {
   @ApiProperty({
     description: 'Amount in Thai baht',
     example: 12000.5,
+    maximum: MAX_MINOR_AMOUNT / 100,
   })
-  @Type(() => Number)
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @IsPositive()
+  @BahtToSatang()
+  @IsInt({ message: 'amount must be a number with at most 2 decimal places' })
+  @Min(1)
+  @Max(MAX_MINOR_AMOUNT)
   @IsNotEmpty()
   amount: number;
 

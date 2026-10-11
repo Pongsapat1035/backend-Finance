@@ -1,11 +1,6 @@
-import { ConfigService } from '@nestjs/config';
+import { ConfigType } from '@nestjs/config';
+import { appConfig } from '../../config/app.config';
 
-export function getJwtSecret(config: ConfigService): string {
-  const secret = config.get<string>('JWT_SECRET')?.trim();
-
-  if (!secret) {
-    throw new Error('JWT_SECRET must be configured');
-  }
-
-  return secret;
+export function getJwtSecret(config: ConfigType<typeof appConfig>): string {
+  return config.jwtSecret;
 }

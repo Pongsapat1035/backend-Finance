@@ -6,12 +6,13 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CategoryDto } from './dto/caregory-dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { PaginationDto } from 'src/utils/query.dto';
+import { CategoryParams } from 'src/utils/query.dto';
 import { JwtAuthGuard } from 'src/modules/auth/guard/jwt-auth.guard';
 import { CurrentUser } from 'src/modules/auth/decorator/user.decorator';
 
@@ -29,7 +30,7 @@ export class CategoryController {
 
   @Get()
   findAll(
-    @Param() params: PaginationDto,
+    @Query() params: CategoryParams,
     @CurrentUser('userId') userId: number,
   ) {
     return this.categoryService.findAll(params, userId);

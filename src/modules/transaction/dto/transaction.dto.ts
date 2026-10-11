@@ -1,22 +1,39 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   IsDateString,
   IsEnum,
+  IsInt,
   IsNotEmpty,
-  IsNumber,
-  IsPositive,
   IsString,
+  Max,
+  Min,
+  ValidateIf,
 } from 'class-validator';
 import { TransactionType } from 'generated/prisma/enums';
+import {
+  BahtToSatang,
+  MAX_MINOR_AMOUNT,
+} from 'src/decorator/money-transform.decorator';
+
+function transformNullableInteger(value: unknown): unknown {
+  if (value === null) return null;
+  if (typeof value === 'string' && value.trim() === '') return value;
+  return Number(value);
+}
 
 export class CreateTransactionDto {
-  @ApiProperty({
-    description: 'The ID of the category this transaction belongs to',
+  @ApiPropertyOptional({
+    description:
+      'The ID of the category this transaction belongs to, or null for an uncategorized expense',
     example: 1,
+    nullable: true,
   })
-  @IsNumber()
-  @IsNotEmpty()
-  categoryId: number;
+  @Transform(({ value }) => transformNullableInteger(value))
+  @ValidateIf((_, value) => value !== null)
+  @IsInt()
+  @Min(1)
+  categoryId: number | null;
 
   @ApiProperty({
     description: 'The date of the transaction in ISO format',
@@ -26,9 +43,15 @@ export class CreateTransactionDto {
   @IsNotEmpty()
   date: string;
 
-  @ApiProperty({ description: 'The amount of the transaction', example: 1500 })
-  @IsNumber()
-  @IsPositive()
+  @ApiProperty({
+    description: 'The amount of the transaction in Thai baht',
+    example: 1500.5,
+    maximum: MAX_MINOR_AMOUNT / 100,
+  })
+  @BahtToSatang()
+  @IsInt({ message: 'amount must be a number with at most 2 decimal places' })
+  @Min(1)
+  @Max(MAX_MINOR_AMOUNT)
   @IsNotEmpty()
   amount: number;
 

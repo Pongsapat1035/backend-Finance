@@ -10,10 +10,18 @@ import { TransactionModule } from './modules/transaction/transaction.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { RecurringTransactionModule } from './modules/recurring-transaction/recurring-transaction.module';
+import { SummaryModule } from './modules/summary/summary.module';
+import { appConfig, validateEnvironment } from './config/app.config';
+import { BudgetModule } from './modules/budget/budget.module';
+import { UserModule } from './modules/user/user.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [appConfig],
+      validate: validateEnvironment,
+    }),
     ThrottlerModule.forRoot({
       throttlers: [
         {
@@ -28,6 +36,9 @@ import { RecurringTransactionModule } from './modules/recurring-transaction/recu
     CategoryModule,
     TransactionModule,
     RecurringTransactionModule,
+    SummaryModule,
+    BudgetModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [

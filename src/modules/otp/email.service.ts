@@ -1,6 +1,7 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
+import { PRODUCT_TIME_ZONE } from '../../config/dayjs.config';
 import { buildOtpEmailHtml } from './templates/otp.template';
 
 @Injectable()
@@ -25,7 +26,7 @@ export class EmailService {
       otp_code: otp,
       ip_address: 'Unknown',
       timestamp: new Date().toLocaleString('en-GB', {
-        timeZone: 'Asia/Bangkok',
+        timeZone: PRODUCT_TIME_ZONE,
       }),
       location: 'Unknown',
       device: 'Unknown',

@@ -4,12 +4,31 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CategoryDto } from './dto/caregory-dto';
+import { TransactionType } from 'generated/prisma/client';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
-import { PaginationDto } from 'src/utils/query.dto';
+import { CategoryParams } from 'src/utils/query.dto';
 
 @Injectable()
 export class CategoryService {
   constructor(private prisma: PrismaService) {}
+
+  async validateExpenseCategory(categoryId: number | null, userId: number) {
+    if (categoryId === null) return null;
+
+    const category = await this.prisma.category.findFirst({
+      where: { id: categoryId, userId },
+    });
+
+    if (!category) {
+      throw new NotFoundException(`Category #${categoryId} not found`);
+    }
+
+    if (category.type !== TransactionType.EXPEND) {
+      throw new BadRequestException('Category must be an EXPEND category');
+    }
+
+    return category;
+  }
 
   async create(body: CategoryDto, userId: number) {
     const { title, type } = body;
@@ -29,17 +48,27 @@ export class CategoryService {
     return result;
   }
 
-  async findAll(dto: PaginationDto, userId: number) {
-    const { page = 1, limit = 10 } = dto;
+  async findAll(dto: CategoryParams, userId: number) {
+    const { keyword, type, page = 1, limit = 10 } = dto;
     const skip = (page - 1) * limit;
+    const where = {
+      userId,
+      ...(type && { type }),
+      ...(keyword && {
+        title: {
+          contains: keyword,
+          mode: 'insensitive' as const,
+        },
+      }),
+    };
 
     const [lists, total] = await Promise.all([
       this.prisma.category.findMany({
-        where: { userId },
+        where,
         skip,
         take: limit,
       }),
-      this.prisma.category.count({ where: { userId } }),
+      this.prisma.category.count({ where }),
     ]);
 
     return {
@@ -54,9 +83,22 @@ export class CategoryService {
   }
 
   async update(id: number, userId: number, dto: CategoryDto) {
+    const category = await this.prisma.category.findFirst({
+      where: { id, userId },
+      select: { type: true },
+    });
+
+    if (!category) {
+      throw new NotFoundException('Category not found or access denied');
+    }
+
+    if (dto.type !== category.type) {
+      throw new BadRequestException('Category type cannot be changed');
+    }
+
     const res = await this.prisma.category.updateMany({
       where: { id, userId },
-      data: dto,
+      data: { title: dto.title },
     });
 
     if (res.count === 0) {
