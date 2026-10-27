@@ -42,7 +42,9 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Finance')
-    .setDescription('Desc')
+    .setDescription(
+      'Money values are in THB. Dates, months and years are in Asia/Bangkok time.',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .build();
