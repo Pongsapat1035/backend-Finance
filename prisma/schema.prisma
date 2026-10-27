@@ -30,6 +30,22 @@ model User {
   transactions          Transaction[]
   recurringTransactions RecurringTransaction[]
   budgets               Budget[]
+  files                 File[]
+}
+
+model File {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  storageKey   String   @unique
+  pendingDeletion Boolean @default(false)
+  originalName String
+  mimeType     String
+  size         Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model AuthHandoffCode {

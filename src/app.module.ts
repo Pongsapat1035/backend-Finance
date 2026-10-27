@@ -14,6 +14,7 @@ import { SummaryModule } from './modules/summary/summary.module';
 import { appConfig, validateEnvironment } from './config/app.config';
 import { BudgetModule } from './modules/budget/budget.module';
 import { UserModule } from './modules/user/user.module';
+import { FileModule } from './modules/file/file.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { UserModule } from './modules/user/user.module';
     SummaryModule,
     BudgetModule,
     UserModule,
+    FileModule,
   ],
   controllers: [AppController],
   providers: [
