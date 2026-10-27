@@ -9,7 +9,12 @@ import {
   HttpStatus,
   UnauthorizedException,
 } from '@nestjs/common';
-import { CreateUserDto, GoogleAuthExchangeDto, LoginDto } from './dto/auth.dto';
+import {
+  ChangePasswordDto,
+  CreateUserDto,
+  GoogleAuthExchangeDto,
+  LoginDto,
+} from './dto/auth.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -354,6 +359,32 @@ export class AuthService {
 
   private hashValue(value: string, encoding: 'hex' | 'base64url' = 'hex') {
     return createHash('sha256').update(value).digest(encoding);
+  }
+
+  async changePassword(userId: number, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { password: true },
+    });
+    if (!user)
+      throw new UnauthorizedException('User account no longer exists.');
+    if (!user.password)
+      throw new BadRequestException('This account uses Google sign-in.');
+    if (!(await bcrypt.compare(dto.currentPassword, user.password))) {
+      throw new BadRequestException('Current password is incorrect.');
+    }
+    if (await bcrypt.compare(dto.newPassword, user.password)) {
+      throw new BadRequestException(
+        'New password must differ from the current password.',
+      );
+    }
+    const password = await bcrypt.hash(dto.newPassword, saltRounds);
+    const result = await this.prisma.user.updateMany({
+      where: { id: userId, password: user.password },
+      data: { password, passwordChangedAt: new Date() },
+    });
+    if (result.count !== 1)
+      throw new BadRequestException('Password was changed concurrently.');
   }
 
   async validateUser(dto: LoginDto) {

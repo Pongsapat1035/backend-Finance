@@ -2,6 +2,11 @@ import { Transform, TransformFnParams } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsString, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
+const PASSWORD_PATTERN =
+  /^(?=.*[A-Z])(?=.*[~!@#$%^&*()_+={}\x5b\]|\\:;"'<>,.?\x2f-]).{8,}$/;
+const PASSWORD_MESSAGE =
+  'Password must be at least 8 characters long, contain at least one uppercase letter, and one special character (including _)';
+
 export class LoginDto {
   @ApiProperty()
   @IsEmail()
@@ -15,13 +20,9 @@ export class LoginDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
-  @Matches(
-    /^(?=.*[A-Z])(?=.*[~!@#$%^&*()_+={}\x5b\]|\\:;"'<>,.?\x2f-]).{8,}$/,
-    {
-      message:
-        'Password must be at least 8 characters long, contain at least one uppercase letter, and one special character (including _)',
-    },
-  )
+  @Matches(PASSWORD_PATTERN, {
+    message: PASSWORD_MESSAGE,
+  })
   password: string;
 }
 
@@ -40,4 +41,19 @@ export class GoogleAuthExchangeDto {
   @IsString()
   @IsNotEmpty()
   code: string;
+}
+
+export class ChangePasswordDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  currentPassword: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @Matches(PASSWORD_PATTERN, {
+    message: PASSWORD_MESSAGE,
+  })
+  newPassword: string;
 }

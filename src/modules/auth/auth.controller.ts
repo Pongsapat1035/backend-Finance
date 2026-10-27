@@ -12,13 +12,21 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
-import { CreateUserDto, GoogleAuthExchangeDto, LoginDto } from './dto/auth.dto';
+import {
+  ChangePasswordDto,
+  CreateUserDto,
+  GoogleAuthExchangeDto,
+  LoginDto,
+} from './dto/auth.dto';
 import { ApiBody, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { OtpVerify } from '../otp/otp.dto';
 import { LocalAuthGuard } from './guard/local-auth.guard';
 import { Request, Response } from 'express';
 import { UserModel } from 'generated/prisma/models/User';
 import { Throttle } from '@nestjs/throttler';
+import { JwtAuthGuard } from './guard/jwt-auth.guard';
+import { CurrentUser } from './decorator/user.decorator';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -39,6 +47,19 @@ export class AuthController {
   @Post('signin')
   signIn(@Req() req: Request) {
     return this.authService.login(req.user as UserModel);
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiBody({ type: ChangePasswordDto })
+  @Throttle({ default: { ttl: 60_000, limit: 3 } })
+  changePassword(
+    @CurrentUser('userId') userId: number,
+    @Body() body: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(userId, body);
   }
 
   @Get('google/link')

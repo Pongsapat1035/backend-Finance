@@ -18,6 +18,10 @@ model User {
   id                    Int                    @id @default(autoincrement())
   email                 String                 @unique
   name                  String?
+  bio                   String?
+  passwordChangedAt     DateTime?
+  avatarFileId          Int?                   @unique
+  avatarFile            File?                  @relation("UserAvatar", fields: [avatarFileId], references: [id], onDelete: SetNull)
   password              String?
   googleSubject         String?                @unique
   status                UserStatus             @default(UNVERIFIED)
@@ -39,6 +43,7 @@ model File {
   user         User     @relation(fields: [userId], references: [id], onDelete: Restrict)
   storageKey   String   @unique
   pendingDeletion Boolean @default(false)
+  avatarOf     User?    @relation("UserAvatar")
   originalName String
   mimeType     String
   size         Int
