@@ -5,6 +5,7 @@ describe('SummaryController', () => {
   const summaryService = {
     getSummary: jest.fn(),
     getExpensesByCategory: jest.fn(),
+    getNetCashFlow: jest.fn(),
   };
   const controller = new SummaryController(summaryService as never);
 
@@ -39,5 +40,32 @@ describe('SummaryController', () => {
       totalExpenses: 760,
     });
     expect(summaryService.getExpensesByCategory).toHaveBeenCalledWith(10, {});
+  });
+
+  it('serves monthly and yearly cash flow from one /summary/net-cash-flow route', () => {
+    const routes = Object.getOwnPropertyNames(SummaryController.prototype)
+      .map((name) => {
+        const handler = Object.getOwnPropertyDescriptor(
+          SummaryController.prototype,
+          name,
+        )?.value as object;
+        return Reflect.getMetadata(PATH_METADATA, handler) as
+          string | undefined;
+      })
+      .filter((path) => path?.startsWith('net-cash-flow'));
+
+    expect(routes).toEqual(['net-cash-flow']);
+  });
+
+  it('passes the authenticated user and query to the net cash flow', async () => {
+    summaryService.getNetCashFlow.mockResolvedValue({ period: '2026' });
+
+    await expect(
+      controller.getNetCashFlow(10, { type: 'yearly', year: 2026 }),
+    ).resolves.toEqual({ period: '2026' });
+    expect(summaryService.getNetCashFlow).toHaveBeenCalledWith(10, {
+      type: 'yearly',
+      year: 2026,
+    });
   });
 });

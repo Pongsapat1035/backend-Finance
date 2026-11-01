@@ -8,6 +8,11 @@ const requiredVariables = [
   'GOOGLE_CLIENT_ID',
   'GOOGLE_CLIENT_SECRET',
   'GOOGLE_REDIRECT_URI',
+  'STORAGE_ENDPOINT',
+  'STORAGE_REGION',
+  'STORAGE_BUCKET',
+  'STORAGE_ACCESS_KEY_ID',
+  'STORAGE_SECRET_ACCESS_KEY',
 ] as const;
 
 export const appConfig = registerAs('app', () => ({
@@ -33,6 +38,7 @@ export function validateEnvironment(environment: Environment): Environment {
 
   validateHttpUrl(validatedEnvironment, 'FRONTEND_URL');
   validateHttpUrl(validatedEnvironment, 'GOOGLE_REDIRECT_URI');
+  validateHttpUrl(validatedEnvironment, 'STORAGE_ENDPOINT');
 
   return validatedEnvironment;
 }

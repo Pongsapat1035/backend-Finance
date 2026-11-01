@@ -66,6 +66,7 @@ describe('SummaryService', () => {
       incomeTransactionCount: 2,
       expenseTransactionCount: 4,
       investmentTransactionCount: 1,
+      transactionCount: 7,
     });
   });
 
@@ -83,6 +84,7 @@ describe('SummaryService', () => {
       incomeTransactionCount: 0,
       expenseTransactionCount: 0,
       investmentTransactionCount: 0,
+      transactionCount: 0,
     });
   });
 
@@ -163,5 +165,155 @@ describe('SummaryService', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  it('buckets net cash flow by Bangkok day and keeps satang precision', async () => {
+    prisma.transaction.groupBy.mockResolvedValue([
+      {
+        date: new Date('2026-06-30T17:00:00.000Z'),
+        type: TransactionType.EXPEND,
+        _sum: { amount: 500 },
+      },
+      {
+        date: new Date('2026-07-01T17:30:00.000Z'),
+        type: TransactionType.INCOME,
+        _sum: { amount: 10010 },
+      },
+      {
+        date: new Date('2026-07-02T03:00:00.000Z'),
+        type: TransactionType.EXPEND,
+        _sum: { amount: 3333 },
+      },
+      {
+        date: new Date('2026-07-02T04:00:00.000Z'),
+        type: TransactionType.EXPEND,
+        _sum: { amount: 1000 },
+      },
+    ]);
+
+    const result = await service.getNetCashFlow(10, {
+      type: 'monthly',
+      month: '2026-07',
+      year: 1999,
+    });
+
+    expect(prisma.transaction.groupBy).toHaveBeenCalledWith({
+      by: ['date', 'type'],
+      where: {
+        userId: 10,
+        type: { in: [TransactionType.INCOME, TransactionType.EXPEND] },
+        date: {
+          gte: new Date('2026-06-30T17:00:00.000Z'),
+          lt: new Date('2026-07-31T17:00:00.000Z'),
+        },
+      },
+      _sum: { amount: true },
+    });
+    const zeroDays = Array.from({ length: 29 }, (_, index) => ({
+      period: `2026-07-${String(index + 3).padStart(2, '0')}`,
+      income: 0,
+      expenses: 0,
+      netCashFlow: 0,
+    }));
+    expect(result).toEqual({
+      type: 'monthly',
+      period: '2026-07',
+      timezone: 'Asia/Bangkok',
+      totals: { income: 100.1, expenses: 48.33, netCashFlow: 51.77 },
+      data: [
+        { period: '2026-07-01', income: 0, expenses: 5, netCashFlow: -5 },
+        {
+          period: '2026-07-02',
+          income: 100.1,
+          expenses: 43.33,
+          netCashFlow: 56.77,
+        },
+        ...zeroDays,
+      ],
+    });
+  });
+
+  it('zero-fills every day of a month with no cash flow', async () => {
+    prisma.transaction.groupBy.mockResolvedValue([]);
+
+    const result = await service.getNetCashFlow(10, {
+      type: 'monthly',
+      month: '2026-02',
+    });
+
+    expect(result).toEqual({
+      type: 'monthly',
+      period: '2026-02',
+      timezone: 'Asia/Bangkok',
+      totals: { income: 0, expenses: 0, netCashFlow: 0 },
+      data: Array.from({ length: 28 }, (_, index) => ({
+        period: `2026-02-${String(index + 1).padStart(2, '0')}`,
+        income: 0,
+        expenses: 0,
+        netCashFlow: 0,
+      })),
+    });
+  });
+
+  it('buckets yearly net cash flow by Bangkok month and zero-fills all 12 months', async () => {
+    prisma.transaction.groupBy.mockResolvedValue([
+      {
+        date: new Date('2025-12-31T17:00:00.000Z'),
+        type: TransactionType.EXPEND,
+        _sum: { amount: 3333 },
+      },
+      {
+        date: new Date('2026-01-15T05:00:00.000Z'),
+        type: TransactionType.EXPEND,
+        _sum: { amount: 1000 },
+      },
+      {
+        date: new Date('2026-01-31T18:00:00.000Z'),
+        type: TransactionType.INCOME,
+        _sum: { amount: 10010 },
+      },
+      {
+        date: new Date('2026-12-31T16:59:59.000Z'),
+        type: TransactionType.INCOME,
+        _sum: { amount: 5000 },
+      },
+    ]);
+
+    const result = await service.getNetCashFlow(10, {
+      type: 'yearly',
+      year: 2026,
+      month: '1999-01',
+    });
+
+    expect(prisma.transaction.groupBy).toHaveBeenCalledWith({
+      by: ['date', 'type'],
+      where: {
+        userId: 10,
+        type: { in: [TransactionType.INCOME, TransactionType.EXPEND] },
+        date: {
+          gte: new Date('2025-12-31T17:00:00.000Z'),
+          lt: new Date('2026-12-31T17:00:00.000Z'),
+        },
+      },
+      _sum: { amount: true },
+    });
+    const zeroMonths = Array.from({ length: 9 }, (_, index) => ({
+      period: `2026-${String(index + 3).padStart(2, '0')}`,
+      income: 0,
+      expenses: 0,
+      netCashFlow: 0,
+    }));
+    expect(result).toEqual({
+      type: 'yearly',
+      period: '2026',
+      timezone: 'Asia/Bangkok',
+      totals: { income: 150.1, expenses: 43.33, netCashFlow: 106.77 },
+      data: [
+        { period: '2026-01', income: 0, expenses: 43.33, netCashFlow: -43.33 },
+        { period: '2026-02', income: 100.1, expenses: 0, netCashFlow: 100.1 },
+        ...zeroMonths,
+        { period: '2026-12', income: 50, expenses: 0, netCashFlow: 50 },
+      ],
+    });
   });
 });

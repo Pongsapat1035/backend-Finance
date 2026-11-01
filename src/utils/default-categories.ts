@@ -10,5 +10,9 @@ export const getDefaultCategories = (userId: number) => {
     { title: 'Salary', type: TransactionType.INCOME, userId },
     { title: 'Freelance', type: TransactionType.INCOME, userId },
     { title: 'Investments', type: TransactionType.INCOME, userId },
+    // Investment Categories
+    { title: 'ETF', type: TransactionType.INVESTMENT, userId },
+    { title: 'Stock', type: TransactionType.INVESTMENT, userId },
+    { title: 'Crypto', type: TransactionType.INVESTMENT, userId },
   ];
 };

@@ -1,22 +1,48 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDefined, Matches, IsOptional } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import {
+  IsDefined,
+  IsInt,
+  IsOptional,
+  Matches,
+  Max,
+  Min,
+  ValidateIf,
+} from 'class-validator';
 
-export class SummaryQueryDto {
-  @ApiProperty({
-    description: 'Summarize one month in Bangkok time, format YYYY-MM',
-    example: '2026-07',
+class SummaryYearQueryDto {
+  @ApiPropertyOptional({
+    description: 'Calendar year in Bangkok time. Takes precedence over month.',
+    example: 2026,
+    minimum: 1000,
+    maximum: 9999,
   })
-  @IsDefined()
-  @Matches(/^\d{4}-(0[1-9]|1[0-2])$/)
-  month!: string;
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1000)
+  @Max(9999)
+  year?: number;
 }
 
-export class SpendingByCategoryQueryDto {
+export class SummaryQueryDto extends SummaryYearQueryDto {
   @ApiPropertyOptional({
     description:
-      'Expense month in Bangkok time, format YYYY-MM; defaults to the current month',
+      'Required when year is omitted, format YYYY-MM in Bangkok time',
     example: '2026-07',
   })
+  @ValidateIf((query: SummaryQueryDto) => query.year === undefined)
+  @IsDefined()
+  @Matches(/^\d{4}-(0[1-9]|1[0-2])$/)
+  month?: string;
+}
+
+export class SpendingByCategoryQueryDto extends SummaryYearQueryDto {
+  @ApiPropertyOptional({
+    description: 'Defaults to the current Bangkok month when year is omitted',
+    example: '2026-07',
+  })
+  @ValidateIf((query: SpendingByCategoryQueryDto) => query.year === undefined)
   @IsOptional()
   @Matches(/^\d{4}-(0[1-9]|1[0-2])$/)
   month?: string;

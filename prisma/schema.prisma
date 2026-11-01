@@ -18,6 +18,10 @@ model User {
   id                    Int                    @id @default(autoincrement())
   email                 String                 @unique
   name                  String?
+  bio                   String?
+  passwordChangedAt     DateTime?
+  avatarFileId          Int?                   @unique
+  avatarFile            File?                  @relation("UserAvatar", fields: [avatarFileId], references: [id], onDelete: SetNull)
   password              String?
   googleSubject         String?                @unique
   status                UserStatus             @default(UNVERIFIED)
@@ -30,6 +34,23 @@ model User {
   transactions          Transaction[]
   recurringTransactions RecurringTransaction[]
   budgets               Budget[]
+  files                 File[]
+}
+
+model File {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  storageKey   String   @unique
+  pendingDeletion Boolean @default(false)
+  avatarOf     User?    @relation("UserAvatar")
+  originalName String
+  mimeType     String
+  size         Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model AuthHandoffCode {
